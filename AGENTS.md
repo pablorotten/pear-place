@@ -39,6 +39,22 @@ evolution of that learning, not a from-scratch new idea.
 - Prefer the idiomatic Pear/Holepunch patterns over generic Node patterns.
 - Code should be **readable and teachable** — it doubles as content for the thread/video.
 
+## Pear docs & tooling
+
+The Pear docs live at **https://docs.pears.com** and are AI-friendly. Three ways
+to read them — prefer the first:
+
+- **MCP server (`pear-docs`)** — `https://mcp.pears.com/mcp` (Streamable HTTP).
+  Tools: `search_docs` (semantic search) and `fetch_doc` (full Markdown of a page).
+  Wired in `opencode.json` (`mcp.pear-docs`, `type: remote`); other tools need
+  their own client config.
+- **Any page as raw Markdown** — `https://docs.pears.com/<path>.md`
+  (e.g. `https://docs.pears.com/pear/getting-started.md`). Use this for index /
+  landing pages: the MCP returns *processed* Markdown and strips MDX components
+  like `<Cards>`, so their links vanish.
+- **Full dump** — `https://docs.pears.com/llms-full.txt` (~3.3 MB). Reference
+  only; never load the whole file into context.
+
 ## Repo rules
 
 - This repo is **public** (it is part of the submission). Keep it presentable.
