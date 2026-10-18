@@ -1,0 +1,43 @@
+# ── personal planning notes (keep local, never public) ──
+road.md
+plan.md
+job-offer.md
+
+# ── dependencies ──
+node_modules/
+jspm_packages/
+
+# ── logs ──
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── env / secrets ──
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── builds & outputs ──
+dist/
+build/
+out/
+*.tgz
+
+# ── Pear / Bare ──
+.bytenode/
+pear-build/
+
+# ── os / editor ──
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ── local tooling (not part of the submission) ──
+opencode.json
