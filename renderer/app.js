@@ -47,10 +47,25 @@ const offWorkerIpc = bridge.onWorkerIPC(workers.main, (data) => {
   const message = decoder.decode(data)
   console.log('worker ipc', '[', workers.main, ']:', message)
   onWorkerUpdaterEvent(message)
+  let parsed
+  try {
+    parsed = JSON.parse(message)
+  } catch {
+    onWorkerUpdaterEvent(message) // 'updating' / 'updated'
+    parsed = null
+  }
+
+  if (parsed?.type === 'pong') {
+    document.getElementById('pong').innerText = 'Worker time: ' + parsed.time
+  }
 
   if (!sentHello) {
     sentHello = true
     bridge.writeWorkerIPC(workers.main, 'Hello from renderer')
+  }
+
+  document.getElementById('ping-btn').onclick = () => {
+    bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'ping' }))
   }
 })
 
