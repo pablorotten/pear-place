@@ -1,5 +1,11 @@
+import { createGrid, SIZE } from './grid.js'
+
 const bridge = window.bridge
 const decoder = new TextDecoder('utf-8')
+
+const grid = createGrid(document.getElementById('place'), SIZE)
+
+// --- OTA update flow (from the hello-pear tutorial, kept for level 3) --------
 
 document.getElementById('v').innerText += bridge.pkg().version
 
@@ -28,6 +34,8 @@ function onWorkerUpdaterEvent(name) {
   if (name === 'updated') showUpdateReady()
 }
 
+// --- the Pear worker ( PearRuntime OTA internals run there ) -----------------
+
 const workers = {
   main: '/workers/main.js'
 }
@@ -51,21 +59,12 @@ const offWorkerIpc = bridge.onWorkerIPC(workers.main, (data) => {
   try {
     parsed = JSON.parse(message)
   } catch {
-    onWorkerUpdaterEvent(message) // 'updating' / 'updated'
     parsed = null
-  }
-
-  if (parsed?.type === 'pong') {
-    document.getElementById('pong').innerText = 'Worker time: ' + parsed.time
   }
 
   if (!sentHello) {
     sentHello = true
     bridge.writeWorkerIPC(workers.main, 'Hello from renderer')
-  }
-
-  document.getElementById('ping-btn').onclick = () => {
-    bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'ping' }))
   }
 })
 
