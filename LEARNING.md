@@ -64,9 +64,112 @@ Why it exists:
 - `workers/main.js` or `electron/main.js` changes → full restart (`Ctrl+C` → `npm start`).
   The worker is spawned once at boot; reloading the window does not respawn it.
 
+## The opencode GitHub agent: how "the cloud implements my issue" actually works
+
+Comment `/oc implement this ticket` on an issue and an agent codes it — but the
+"cloud" doing the work is **two clouds splitting the job**:
+
+- **GitHub Actions = the hands.** GitHub spins up an *ephemeral Ubuntu VM* (a
+  runner), checks out the repo at the default branch, runs opencode there,
+  and the agent pushes a **new branch + opens a PR** — never committing to
+  `main` directly. The run then comments the PR link back on the issue. The
+  runner VM is destroyed after the run: its `~` (and any credentials in
+  memory) is gone forever.
+- **The model API = the brain.** On that VM, the opencode CLI is just a client
+  for the hosted model (`opencode-go/glm-5.3-flash` here) authenticated with
+  `OPENCODE_API_KEY`. No opencode sandbox somewhere "runs" anything — the
+  *runner* runs, the *model* suggests.
+
+Anatomy learned by polling a live run:
+
+- The CLI can't stream a running job's logs (`--log` errors until completion),
+  but `gh api repos/OWNER/REPO/actions/jobs/ID` returns each step's status —
+  that's how you tell "agent is thinking" from "runner is stuck". (The web
+  page *does* show a live tail; CLI doesn't.)
+- A 20+ min agent step is normal, not stuck: the agent explores, edits,
+  **and verifies itself** — our #3 run spontaneously built a headless
+  `backend/seeder.js` smoke script in Bare, tested restart-persistence
+  (reopen the same Corestore → same canvas), even chased its own false
+  positive (verify script racing the seeder) and self-corrected. Step 79 of
+  one session.
+- `gh pr checkout <n>` locally = the human verification layer: run the branch
+  on your machine, break it apart, merge only after `npm start` proves it.
+
+Workflow config notes (`.github/workflows/opencode.yml`):
+
+- `model: provider/model` is a one-line lever per run; `variant` is a
+  *reasoning-effort* lever, and it's the **wrong fix for slow runs** — more
+  thinking tokens = longer, not shorter. Slow+thorough is a `flash` trait,
+  not a bug; fix patience with `timeout-minutes`, not with reasoning level.
+- Sequential tickets need **merge-before-next**: every run branches off
+  `main`, so a parallel #4 would build on code *without* #3's changes and
+  collide in the same files at review time.
+- Runners can never "open the app" the way devs do (headless VM) — CI-worthy
+  verification = lint + headless p2p/data smoke tests (Hyperbee & Hyperswarm
+  run fine without a display), optionally `xvfb-run` for an Electron boot
+  smoke. Whether the canvas *looks* right stays human.
+
+Source: [opencode GitHub docs](https://opencode.ai/docs/github/) ·
+[anomalyco/opencode#25699](https://github.com/anomalyco/opencode/issues/25699)
+
+## GitHub Actions secrets: a write-only vault
+
+Three facts that make secrets safe enough to trust with an API key:
+
+1. **Encrypted before transit** — `gh secret set` encrypts with GitHub's
+   per-repo public key *before* upload.
+2. **Write-only at rest** — after saving, even you can't read it back; the
+   UI only shows name + timestamp. Overwriteable, never readable.
+3. **Ephemeral at runtime** — decrypted only into the runner's memory for
+   your workflow, and automatically **masked** if code ever prints it.
+
+And don't confuse them with `.env`-style local untracked files:
+secrets = vault (enforcement); untracked files = "gitignore and hope"
+(convention). Three rings of exposure to keep straight:
+**repo-tracked → repo-untracked → vault**. A committed
+`${{ secrets.X }}` *reference* is safe precisely because it's a pointer,
+not the value.
+
+## Service accounts: the CI agent shouldn't use *my* key
+
+OpenCode's console has dedicated **service accounts** ("machine principals
+for CI and automations") — the generalizable pattern:
+
+- One identity (and key) per environment: local machine keeps its personal
+  key in `~/.local/share/opencode/auth.json`; CI gets its own key rotated
+  into `gh secret set OPENCODE_API_KEY` — revoke/re-rotate one without
+  touching the other, and console usage view itemizes spend per key.
+- Cap the CI key's spend so a runaway agent loop can't drain the balance.
+- If the provider offers **IP restrictions: leave them OFF for GitHub
+  Actions** — runners come from Microsoft's ephemeral IP pools, any
+  allowlist breaks every run.
+- Rotation is cheap: create key v2 → `gh secret set` → observe one green
+  run → deactivate v1. Cost of a mistake: one paste command.
+
+## Testing a 2-peer p2p app with one computer
+
+#5 ("two peers paint one canvas") needs **independent peers, not separate
+computers** — peers are "separate storage + identity", which fakes well:
+
+- **Two instances, two profiles** (needs a ~5-line `electron/main.js`
+  change before the app is ready): make `userData` path suffixable via a
+  `--profile=two`-style argv/env flag, then `npm start` + `npm start -- --profile=two`
+  = two peers with separate Hyperbees; Hyperswarm discovers its own
+  peer over localhost. Bonus: three peers whenever you feel rich.
+- **GitHub's runner is a free "second computer"** (headless): a script there
+  can run a peer and assert replication — CI-level proof, no visuals.
+- **The old Win10/4 GB laptop is a legit "real network" second peer**:
+  Electron 40 supports Win10, this stack is OS-portable, same-LAN
+  Hyperswarm discovery needs no port-forwarding. Its job is just "be
+  peer #2 and paint" — 400–800 MB idle-ish, keep the browser closed.
+  No OS reinstall needed; Linux would work (forge makers even ship
+  deb/appimage/flatpak) but buys nothing for the test.
+- What no rig replaces: whether it *looks* right → human, i.e. the video
+  demo layer.
+
 ---
 
-# 🐛 Problems I find
+# 🐛 Problems I found
 
 ## Pear commands print NOTHING (the silent sidecar saga)
 
@@ -145,3 +248,54 @@ above the ping handler, plus install its deps
 Status: **docs bug** — candidate for a PR to
 [holepunchto/pear-docs](https://github.com/holepunchto/pear-docs) adding the missing
 "inline the bootstrap first" step.
+
+## `opencode github install` dies with "Failed to parse JSON" (Windows)
+
+> Symptom: fresh `opencode github install` walks me into installing the GitHub
+> app, then fails at the "Installing GitHub app" step with
+> `Error: Unexpected error — Failed to parse JSON` and self-cancels.
+
+- Not my network: `api.github.com` responds with proper JSON, and I'm on the
+  latest opencode (v1.19.3). Looks like an installer bug (possibly the docs v2
+  vs CLI v1 mismatch), not a config problem on this end.
+- Curious residue: the installer **had already created** `.github/workflows/opencode.yml`
+  before dying (`git status` showed untracked `.github/`) — the walk was partly
+  done when it blew up.
+- Lesson over "retry the lottery": the docs support **manual setup** (app +
+  workflow + secrets by hand). Manual is three boring steps and now I understand
+  each one — the installer's magic was hiding where GitHub App vs the workflow
+  vs secrets each plug in. Manual beats magic when magic is flaky.
+
+## The opencode GitHub App's post-install URL is a dead domain
+
+> Symptom: after clicking through [github.com/apps/opencode-agent](https://github.com/apps/opencode-agent),
+> the setup redirect goes to
+> `opencode-slack-workerd-anomaly.sst-15d.workers.dev/github/setup?...` —
+> browser shows `DNS_PROBE_FINISHED_NXDOMAIN`.
+
+- NXDOMAIN = the DNS record doesn't exist — nobody can reach it, and the domain
+  name itself (a leftover SST "slack" worker) smells like a stale App-manifest
+  `setup_url`.
+- Key insight: **the installation is recorded even though the post-install
+  page dies** — GitHub registers the install regardless of the redirect.
+- Rather than trust an App whose wiring we'd just watched fail, we switched the
+  workflow to **`use_github_token: true`**: GitHub's built-in `GITHUB_TOKEN`
+  instead of the App + an OIDC exchange to `api.opencode.ai`. Trade: give the
+  workflow explicit `contents/pull-requests/issues: write` permissions. For a
+  personal public repo that dependency-chain (App + token exchanger) was the
+  flakier path anyway — and it removed `id-token: write` entirely.
+- Status: candidate to file as a bug in [anomalyco/opencode](https://github.com/anomalyco/opencode/issues)
+  (searched first — nobody has reported it yet).
+
+## First agent run hit paused-at-timeout territory
+
+> Observation: the #3 `/oc implement` run did ~25 min of genuinely productive
+> verification (headless Bare smoke tests, restart-invariant checks) inside the
+> agent step, with `timeout-minutes: 30` looming.
+
+- Diagnosed via steps API, not vibes: "Set up job" 3s, "Checkout" 1s, the rest
+  is the **agent step itself** — model-token time, by design of the
+  `flash`-tier thoroughness.
+- Takeaway that changed the config decision: **don't reach for `variant: high`
+  to fix slowness** (that makes it slower); raise `timeout-minutes` instead.
+  Model variant is a quality lever; the clock lever is the workflow guard.
