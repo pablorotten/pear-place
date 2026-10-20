@@ -80,6 +80,9 @@ function getWorker(specifier) {
   ])
   const pipe = new FramedStream(worker)
 
+  // worker stderr/stdout → main console too, so `npm start` shows crashes
+  worker.stderr.on('data', (data) => console.error('[worker]', data.toString()))
+
   function sendWorkerStdout(data) {
     sendToAll('pear:worker:stdout:' + specifier, data)
   }

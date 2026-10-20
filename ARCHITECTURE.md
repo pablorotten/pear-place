@@ -36,7 +36,7 @@ same code: run it once without a key and you hold a new one.
 
 ## Naming ≠ hosting
 
-The key only *names* the canvas; the original writer core lives on the disk of
+The key only _names_ the canvas; the original writer core lives on the disk of
 whoever created it. If that peer goes offline, new joiners find peers but can't
 fetch history. That's what the **seeder** is for: the same backend, headless in
 Bare, hosting the canvas when the creator's app is closed.

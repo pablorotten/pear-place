@@ -54,7 +54,7 @@ to read them — prefer the first:
   their own client config.
 - **Any page as raw Markdown** — `https://docs.pears.com/<path>.md`
   (e.g. `https://docs.pears.com/pear/getting-started.md`). Use this for index /
-  landing pages: the MCP returns *processed* Markdown and strips MDX components
+  landing pages: the MCP returns _processed_ Markdown and strips MDX components
   like `<Cards>`, so their links vanish.
 - **Full dump** — `https://docs.pears.com/llms-full.txt` (~3.3 MB). Reference
   only; never load the whole file into context.

@@ -3,7 +3,14 @@ import { createGrid, SIZE } from './grid.js'
 const bridge = window.bridge
 const decoder = new TextDecoder('utf-8')
 
-const grid = createGrid(document.getElementById('place'), SIZE)
+// every paint comes from the worker's messages: either the full stored canvas
+// (canvas:grid, after relaunch) or one placement the Hyperbee accepted
+// (canvas:placed — local today, from peers in level 4)
+const grid = createGrid(document.getElementById('place'), SIZE, {
+  onClick: (x, y) => {
+    bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'canvas:place', x, y }))
+  }
+})
 
 // --- OTA update flow (from the hello-pear tutorial, kept for level 3) --------
 
@@ -62,9 +69,26 @@ const offWorkerIpc = bridge.onWorkerIPC(workers.main, (data) => {
     parsed = null
   }
 
+  if (parsed && parsed.type === 'canvas:grid') {
+    const status = document.getElementById('status')
+    status.innerText =
+      SIZE +
+      'x' +
+      SIZE +
+      ' · backed by Hyperbee · ' +
+      parsed.placements.length +
+      ' stored placements loaded'
+    for (const placement of parsed.placements) grid.paint(placement.x, placement.y, placement.color)
+    return
+  }
+  if (parsed && parsed.type === 'canvas:placed') {
+    grid.paint(parsed.x, parsed.y, parsed.color)
+    return
+  }
+
   if (!sentHello) {
     sentHello = true
-    bridge.writeWorkerIPC(workers.main, 'Hello from renderer')
+    bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'hello' }))
   }
 })
 
