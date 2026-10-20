@@ -23,14 +23,15 @@ pnpm-debug.log*
 *.key
 
 # ── builds & outputs ──
+# (build/ is NOT ignored — it's the app's icons + per-OS manifests, must be committed)
 dist/
-build/
 out/
 *.tgz
 
 # ── Pear / Bare ──
 .bytenode/
 pear-build/
+todo
 
 # ── os / editor ──
 .DS_Store

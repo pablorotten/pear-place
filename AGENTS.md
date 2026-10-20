@@ -4,6 +4,10 @@ Context for any AI assistant opened in this repo. Read this first, then read
 `assessment.md` (the official brief — filled in once the assessment lands)
 and `plan.md` (the picture + reasoning) before responding.
 
+**`LEARNING.md` is the author's learning notebook**: when the author learns
+something worth keeping (concepts, gotchas, "what is X for" explanations),
+offer to write it there in their own words — that's the place for it.
+
 ## What this is
 
 A **technical assessment for Tether** (Developer Relations / Technical Content
