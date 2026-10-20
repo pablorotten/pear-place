@@ -27,7 +27,7 @@ runtime refuses to boot without.
   version 0 locally, and prints the link to paste into `package.json`. It's not tied
   to a folder — the keypair is yours on that machine, so it travels with the repo.
 - Note `npm start` passes `--no-updates` (updates disabled in dev) — but the link
-  still has to be *valid*, just not active. In Level 3 this exact field becomes the
+  still has to be _valid_, just not active. In Level 3 this exact field becomes the
   OTA magic: you release a new version at that link and every running peer pulls it
   over the air.
 
@@ -69,7 +69,7 @@ Why it exists:
 Comment `/oc implement this ticket` on an issue and an agent codes it — but the
 "cloud" doing the work is **two clouds splitting the job**:
 
-- **GitHub Actions = the hands.** GitHub spins up an *ephemeral Ubuntu VM* (a
+- **GitHub Actions = the hands.** GitHub spins up an _ephemeral Ubuntu VM_ (a
   runner), checks out the repo at the default branch, runs opencode there,
   and the agent pushes a **new branch + opens a PR** — never committing to
   `main` directly. The run then comments the PR link back on the issue. The
@@ -78,14 +78,14 @@ Comment `/oc implement this ticket` on an issue and an agent codes it — but th
 - **The model API = the brain.** On that VM, the opencode CLI is just a client
   for the hosted model (`opencode-go/glm-5.3-flash` here) authenticated with
   `OPENCODE_API_KEY`. No opencode sandbox somewhere "runs" anything — the
-  *runner* runs, the *model* suggests.
+  _runner_ runs, the _model_ suggests.
 
 Anatomy learned by polling a live run:
 
 - The CLI can't stream a running job's logs (`--log` errors until completion),
   but `gh api repos/OWNER/REPO/actions/jobs/ID` returns each step's status —
   that's how you tell "agent is thinking" from "runner is stuck". (The web
-  page *does* show a live tail; CLI doesn't.)
+  page _does_ show a live tail; CLI doesn't.)
 - A 20+ min agent step is normal, not stuck: the agent explores, edits,
   **and verifies itself** — our #3 run spontaneously built a headless
   `backend/seeder.js` smoke script in Bare, tested restart-persistence
@@ -98,16 +98,16 @@ Anatomy learned by polling a live run:
 Workflow config notes (`.github/workflows/opencode.yml`):
 
 - `model: provider/model` is a one-line lever per run; `variant` is a
-  *reasoning-effort* lever, and it's the **wrong fix for slow runs** — more
+  _reasoning-effort_ lever, and it's the **wrong fix for slow runs** — more
   thinking tokens = longer, not shorter. Slow+thorough is a `flash` trait,
   not a bug; fix patience with `timeout-minutes`, not with reasoning level.
 - Sequential tickets need **merge-before-next**: every run branches off
-  `main`, so a parallel #4 would build on code *without* #3's changes and
+  `main`, so a parallel #4 would build on code _without_ #3's changes and
   collide in the same files at review time.
 - Runners can never "open the app" the way devs do (headless VM) — CI-worthy
   verification = lint + headless p2p/data smoke tests (Hyperbee & Hyperswarm
   run fine without a display), optionally `xvfb-run` for an Electron boot
-  smoke. Whether the canvas *looks* right stays human.
+  smoke. Whether the canvas _looks_ right stays human.
 
 Source: [opencode GitHub docs](https://opencode.ai/docs/github/) ·
 [anomalyco/opencode#25699](https://github.com/anomalyco/opencode/issues/25699)
@@ -117,7 +117,7 @@ Source: [opencode GitHub docs](https://opencode.ai/docs/github/) ·
 Three facts that make secrets safe enough to trust with an API key:
 
 1. **Encrypted before transit** — `gh secret set` encrypts with GitHub's
-   per-repo public key *before* upload.
+   per-repo public key _before_ upload.
 2. **Write-only at rest** — after saving, even you can't read it back; the
    UI only shows name + timestamp. Overwriteable, never readable.
 3. **Ephemeral at runtime** — decrypted only into the runner's memory for
@@ -127,10 +127,10 @@ And don't confuse them with `.env`-style local untracked files:
 secrets = vault (enforcement); untracked files = "gitignore and hope"
 (convention). Three rings of exposure to keep straight:
 **repo-tracked → repo-untracked → vault**. A committed
-`${{ secrets.X }}` *reference* is safe precisely because it's a pointer,
+`${{ secrets.X }}` _reference_ is safe precisely because it's a pointer,
 not the value.
 
-## Service accounts: the CI agent shouldn't use *my* key
+## Service accounts: the CI agent shouldn't use _my_ key
 
 OpenCode's console has dedicated **service accounts** ("machine principals
 for CI and automations") — the generalizable pattern:
@@ -164,7 +164,7 @@ computers** — peers are "separate storage + identity", which fakes well:
   peer #2 and paint" — 400–800 MB idle-ish, keep the browser closed.
   No OS reinstall needed; Linux would work (forge makers even ship
   deb/appimage/flatpak) but buys nothing for the test.
-- What no rig replaces: whether it *looks* right → human, i.e. the video
+- What no rig replaces: whether it _looks_ right → human, i.e. the video
   demo layer.
 
 ---
@@ -182,7 +182,7 @@ What was wrong on this machine (Windows), in order:
    but the local `corestores` state was written by an older storage format — the
    sidecar crashed with `Unsupported version: 2` at boot.
 2. After resetting `corestores`, the platform was half-old (June `current`/`checkout`)
-   and half-new (October boot bundle) — the sidecar then exited cleanly *mid-boot*,
+   and half-new (October boot bundle) — the sidecar then exited cleanly _mid-boot_,
    still with no output.
 3. Root cause of the silence: **the Pear CLI is a thin client for the sidecar, and it
    swallows sidecar boot failures** — printing nothing and exiting 0. A Pear command
@@ -235,7 +235,7 @@ Source: [Pear CLI reference (`pear run`)](https://docs.pears.com/pear/reference/
   edits a worker that already has `pipe`, `pear`, `updaterConfig` — the **inlined**
   bootstrap the docs show pages earlier "so you can see what it does". The tutorial
   never says to actually do that inlining ("keep the existing `pear:applyUpdate`
-  handling" — the *existing* handling lives inside the package, not in your file).
+  handling" — the _existing_ handling lives inside the package, not in your file).
 - Pasting the diff alone → `pipe` doesn't exist → worker dies at boot.
 
 The fix that worked: inline the real bootstrap (imports + `argv` helper +

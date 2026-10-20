@@ -35,7 +35,7 @@ One of the strengths of the Holepunch stack is that backend code can be shared a
 2. Write a short "Launch thread" (X/Twitter style, 5–7 posts) announcing your app to a developer audience. Assume the reader has never heard of Pear, Bare, or Holepunch.
 
 3. Video Walkthrough
-Record a 2-3 mins short video presentation demonstrating the app in action (no face shown needed). Explain the specific problem it solves and walk through your technical implementation.
+   Record a 2-3 mins short video presentation demonstrating the app in action (no face shown needed). Explain the specific problem it solves and walk through your technical implementation.
 
 ---
 
@@ -75,7 +75,7 @@ Reply to the email with three links:
 ## Decision (locked 2026-10-20, day 2)
 
 - **App:** `pear-place` 🍐 — a p2p r/place: strangers paint one shared pixel canvas,
-  and there is no server — the canvas *is* the network.
+  and there is no server — the canvas _is_ the network.
 - **Template:** `hello-pear-electron` (a canvas needs a real UI; the backend still
   runs in Bare).
 - **Stack:** Hypercore + Hyperbee via **Autobee** (multi-writer canvas view),
@@ -83,17 +83,17 @@ Reply to the email with three links:
 
 ## Coverage check — every requirement → a checkpoint on the road
 
-| # | Requirement | Where it happens | Planned day |
-|---|---|---|---|
-| 1 | Built on Pear, installs from a `pear://` link | Level 3 — stage & release with the `pear` CLI | Day 4 |
-| 2 | Holepunch building blocks | Hyperbee (L1 persistence) · Hypercore + Hyperswarm (L2 sync) · Autobee (multi-writer merge) | Days 2–4 |
-| 3 | P2P OTA updates via `pear-runtime-updater` | Level 3 — release v1.1 while a peer is running | Day 4 |
-| 4 | Bare first — backend runs in Bare | `backend/` is a pure-JS module, runnable headless in Bare (verified from Level 1 on) | Day 2 |
-| 5 | Shareable backend (extra points) | Same `backend/` powers the desktop app *and* a CLI seeder hosting the canvas | Day 4 |
-| 6 | "A real person would keep installed" | Fun + offline-first; carried by the thread & video story | Day 5 |
-| 7 | Launch thread (5–7 posts) | 📣 checkpoint | Day 5 |
-| 8 | Video walkthrough (2–3 min) | 🎬 checkpoint — recorded right after Level 3 lands | Day 4 |
-| 9 | Submission — repo / video / thread links | ✅ submit | Day 5 |
+| #   | Requirement                                   | Where it happens                                                                            | Planned day |
+| --- | --------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------- |
+| 1   | Built on Pear, installs from a `pear://` link | Level 3 — stage & release with the `pear` CLI                                               | Day 4       |
+| 2   | Holepunch building blocks                     | Hyperbee (L1 persistence) · Hypercore + Hyperswarm (L2 sync) · Autobee (multi-writer merge) | Days 2–4    |
+| 3   | P2P OTA updates via `pear-runtime-updater`    | Level 3 — release v1.1 while a peer is running                                              | Day 4       |
+| 4   | Bare first — backend runs in Bare             | `backend/` is a pure-JS module, runnable headless in Bare (verified from Level 1 on)        | Day 2       |
+| 5   | Shareable backend (extra points)              | Same `backend/` powers the desktop app _and_ a CLI seeder hosting the canvas                | Day 4       |
+| 6   | "A real person would keep installed"          | Fun + offline-first; carried by the thread & video story                                    | Day 5       |
+| 7   | Launch thread (5–7 posts)                     | 📣 checkpoint                                                                               | Day 5       |
+| 8   | Video walkthrough (2–3 min)                   | 🎬 checkpoint — recorded right after Level 3 lands                                          | Day 4       |
+| 9   | Submission — repo / video / thread links      | ✅ submit                                                                                   | Day 5       |
 
 ## Scoring criteria (if stated)
 

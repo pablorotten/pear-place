@@ -1,6 +1,8 @@
 // The canvas state, in its purest form: 10,000 cells, one byte each.
 // 0 = white, 1 = black. Index = y * SIZE + x.
-// Later levels make this array the thing that syncs between peers.
+// The board is fed by the backend (Hyperbee persisted, workers/main.js):
+// clicks are delegated via onClick — the backend is the source of truth,
+// and every `placed` event (local or, later, from peers) repaints here.
 
 export const SIZE = 100
 
@@ -8,7 +10,7 @@ const COLORS = ['#ffffff', '#000000']
 const WHITE = 0
 const BLACK = 1
 
-export function createGrid(canvas, size = SIZE) {
+export function createGrid(canvas, size = SIZE, { onClick } = {}) {
   const ctx = canvas.getContext('2d')
   const cells = new Uint8Array(size * size)
 
@@ -40,7 +42,8 @@ export function createGrid(canvas, size = SIZE) {
     const rect = canvas.getBoundingClientRect()
     const x = Math.floor(((event.clientX - rect.left) / rect.width) * size)
     const y = Math.floor(((event.clientY - rect.top) / rect.height) * size)
-    paint(x, y)
+    if (onClick) onClick(x, y)
+    else paint(x, y)
   })
 
   draw()
