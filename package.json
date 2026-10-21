@@ -13,7 +13,10 @@
     "lint": "prettier --check . && lunte",
     "format": "prettier --write . && lunte --fix",
     "smoke": "bare backend/smoke.js",
+    "smoke:p2p": "bare backend/smoke.p2p.js",
+    "demo": "bare backend/demo.js",
     "start": "electron-forge start -- --no-updates",
+    "start:two": "electron-forge start -- --no-updates --profile=two",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "install:all": "npm i --ignore-scripts=true && npm run postinstall:all",
@@ -27,6 +30,7 @@
   "dependencies": {
     "autobee": "^2.2.2",
     "bare": "^1.35.1",
+    "bare-fs": "^4.5.3",
     "bare-path": "^3.1.2",
     "bare-storage": "^1.1.0",
     "corestore": "^7.15.0",
