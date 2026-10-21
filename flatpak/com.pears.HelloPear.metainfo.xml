@@ -18,9 +18,9 @@
 
   <content_rating type="oars-1.1"/>
 
-  <url type="homepage">https://github.com/holepunchto/hello-pear-electron</url>
-  <url type="help">https://github.com/holepunchto/hello-pear-electron/issues/new/choose</url>
-  <url type="bugtracker">https://github.com/holepunchto/hello-pear-electron/issues</url>
+  <url type="homepage">https://github.com/pablorotten/pear-place</url>
+  <url type="help">https://github.com/pablorotten/pear-place/issues/new/choose</url>
+  <url type="bugtracker">https://github.com/pablorotten/pear-place/issues</url>
 
   <releases>
     <release date="2026-06-29" version="1.0.0"/>

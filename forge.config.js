@@ -107,8 +107,8 @@ module.exports = {
             'End-to-end boilerplate for embedding pear-runtime into Electron apps and deploying peer-to-peer application updates.',
           contact: 'hello@holepunchto.to',
           license: 'Apache-2.0',
-          issues: 'https://github.com/holepunchto/hello-pear-electron/issues',
-          website: 'https://github.com/holepunchto/hello-pear-electron',
+          issues: 'https://github.com/pablorotten/pear-place/issues',
+          website: 'https://github.com/pablorotten/pear-place',
           app: {
             extensions: ['gnome'],
             plugs: [

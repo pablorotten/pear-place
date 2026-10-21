@@ -80,6 +80,48 @@ Source: [Troubleshoot desktop releases — Recovering from lost write access](ht
 [Ship your app — touch, upgrade link, seed](https://docs.pears.com/p2p/getting-started/build-a-peer-to-peer-chat/ship/#touch-set-the-upgrade-link-and-seed) ·
 [Publish with GitHub Actions — generate and store the primary key](https://docs.pears.com/pear/how-to/operate-an-app/github-actions/publish-with-github-actions/#generate-and-store-the-primary-key)
 
+## Anatomy of `%APPDATA%\pear`: which folder holds what (and moving keys to another PC)
+
+> `\corestores` holds the keys; everything else is re-downloadable runtime state.
+
+One `pear touch` writes **both halves at once**: the public link to stdout
+(what you paste anywhere), and the secret straight into the platform dir —
+never printed, never a plain-text file. Digging in:
+
+| Folder                    | What lives there                                                                                | Replaceable?                |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------- |
+| `corestores\platform\db\` | **The write keys** for everything minted with `pear touch`, kept in a Corestore (LevelDB vault) | ❌ only irreplaceable piece |
+| `by-dkey\<hash>\`         | Cache of apps _executed_ (`pear run`-style): boot bundle, checkout, prebuilds — no secrets      | ✅ re-downloads             |
+| `pear\db\`                | Pear's internal state (links, prefs)                                                            | ✅                          |
+| `bin\`, `current\`, `gc\` | The runtime itself                                                                              | ✅                          |
+
+So "everything I've run with Pear" is **not** here — executed apps are just
+cached copies under `by-dkey`. What makes a machine an _owner_ is `corestores`
+alone. Backing up keys = copying that one folder.
+
+- **The build-time override holds only the public half.** `forge.config.js`
+  allows an env var (`UPGRADE_KEY`) to replace `package.json#upgrade` at make
+  time — but that var is the public link, not a secret. The write key is
+  resolved implicitly by the CLI from local storage; you never touch it as
+  text. (No `.env` loader here on purpose: `npm pkg set upgrade=...` covers
+  the change-the-link case, and real env vars cover the CI case.)
+- **Keys travel between machines** — they're crypto material, not
+  hardware-bound. Restore the folder at the same path on the new PC, then
+  verify: `pear info <link>` → `writable: true` means it landed; `false` = it
+  didn't.
+- **The trap:** overwriting an existing `corestores` with a foreign one
+  **destroys that machine's own keys**. There is **no official merge
+  command** for two corestores. Real options:
+  1. one machine per release line (zero risk, zero steps);
+  2. keep N named copies and swap the active folder before publishing;
+  3. multisig — the production answer already noted above: writes become a
+     quorum of signing keys, machine-independent by construction.
+- And the backup itself **contains the secret keys** — handle it like a
+  wallet, not a README.
+
+Source: [Ship your app](https://docs.pears.com/p2p/getting-started/build-a-peer-to-peer-chat/ship/#touch-set-the-upgrade-link-and-seed) ·
+[Troubleshoot desktop releases](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/troubleshoot-desktop-releases/#recovering-from-lost-write-access)
+
 ## What is the sidecar?
 
 The Pear platform runs as **two pieces**: a fat background process and a thin CLI.

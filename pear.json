@@ -1,7 +1,7 @@
 {
   "multisig": {
     "publicKeys": ["<PUBKEY_HERE>", "<PUBKEY_HERE>", "<PUBKEY_HERE>"],
-    "namespace": "holepunchto/hello-pear-electron",
+    "namespace": "pablorotten/pear-place",
     "quorum": 2
   }
 }
