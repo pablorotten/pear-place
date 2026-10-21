@@ -18,6 +18,7 @@
     "seed": "bare seeder/",
     "start": "electron-forge start -- --no-updates",
     "start:two": "electron-forge start -- --no-updates --profile=two",
+    "start:fresh": "electron-forge start -- --no-updates --profile=fresh",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "install:all": "npm i --ignore-scripts=true && npm run postinstall:all",

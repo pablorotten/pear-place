@@ -222,6 +222,120 @@ computers** — peers are "separate storage + identity", which fakes well:
 - What no rig replaces: whether it _looks_ right → human, i.e. the video
   demo layer.
 
+## Warm peer vs cold peer: what actually happens on a first-ever open
+
+The confusion that ate an afternoon (all three witnesses ran the SAME code;
+only their storage dirs differed):
+
+|                 | warm peer (T2)                                        | cold peer (a fresh instance)                                   |
+| --------------- | ----------------------------------------------------- | -------------------------------------------------------------- |
+| storage dir     | joined this canvas in a previous run                  | **empty** — first contact ever                                 |
+| writer identity | its grant is already in shared history                | **no grant yet** — must knock and wait                         |
+| on open         | boot finds the grant → **writable instantly** → syncs | **read-only**, knocks, pulls the entire history block by block |
+
+A cold peer's boot is a 3-step handshake, each waiting on DHT discovery:
+**find peers → get granted (knock) → download everything.** Until the grant
+replicates back, its clicks are `canvas:place rejected`; until the download
+finishes, its canvas renders dot-by-dot and looks "broken" next to a warm
+window. A reopen doesn't lose anything (it resumes its storage) and warm
+starts are fast — that part is timing, not corruption.
+
+**THE MAIN TAKEAWAY (design decision recorded):** if you start a new
+instance fresh, it should **wait until it receives the latest shared canvas
+before allowing the user to click and paint**. Never let someone contribute
+to a canvas they can't fully see. Today the app only gates on writability;
+the "caught up" half is missing — gate `canvas:place` until writable AND the
+initial grid has streamed, and show a "joining…" state meanwhile.
+
+### The 3-terminal test that shows it all
+
+Three terminals, one script, all three roles visible at once:
+
+```sh
+# T1 — the seeder: npm run seed
+# T2 — a warm peer:   npm start
+# T3 — a cold peer:   npm run start:fresh
+```
+
+Why T1 (`npm run seed`) exists: the seeder is the **headless host** — the
+same backend with no window, holding **grant power**. T2 and T3 are already
+granted writers (their grants live in shared history), so T1 is the peer
+that: hosts the canvas when all windows are closed, hears every newcomer's
+knock and auto-grants them, and serves the full history to cold joins.
+Without it, a canvas whose windows are all closed is offline.
+
+What's happening per terminal while you paint:
+
+- **T1** prints every pixel it hosts (`[seeder] pixel x,y`) — the live
+  heartbeat of the canvas, plus `knock heard — auto-granting …` whenever a
+  newcomer joins. It paints NOTHING itself; it's the network's memory.
+- **T2 (warm)**: opens with the full canvas already in its view (it is
+  `canvas streamed: N placements` on boot) and paints immediately. Every
+  click diff (`canvas:placed`) is the Autobee `update(view, changes)` diff
+  reaching the renderer — its paint lands on T1 within ~1s.
+- **T3 (cold, fresh profile)**: the newcomer dance, visible in order — joins
+  **read-only**, paints are `rejected` at first, knocks until SOME writable
+  peer grants it, then the canvas history streams in block by block (the
+  "different dots" effect: its first `canvas:placed` batches are the whole
+  backfill, not your clicks). Once settled, it paints and syncs like T2.
+
+The two visual beats that prove the network is the backend, in order:
+
+1. close T2's window (and every other window) — reopen any of them: the
+   canvas is intact, hosted by T1 alone;
+2. close T1 too — everything dies silently (the canvas lives on disk, not
+   online). Restart T1: its grant is IN shared history, so it prints
+   `writable — grant power held` instantly with zero ceremony. That is
+   issue #6's whole point in one Ctrl+C.
+
+## Why "outbound works, inbound stalls" is a thing (the stalled backfill)
+
+The real head-scratcher of the day: a cold peer could PAINT (its pixels
+reached the seeder) but stopped RECEIVING — for a full minute nothing new
+arrived from the other windows. Fixed only by restarting that one instance.
+Not cache, not "wait longer":
+
+- **Outbound is a push**: appending your own writer core triggers announce +
+  replication toward connected peers — it just works.
+- **Inbound is a pull**: history arrives because _your side_ requests blocks
+  when peers announce what they have. If the grant lands MID-boot (knock →
+  grant while the history pull is still running), that request/wakeup cycle
+  can end up satisfied-early: peers stop offering old blocks, your side
+  stops asking, and the **backfill starves** — while pushes keep flowing.
+- Restarting = restarting the request cycle: fresh boot re-announces, peers
+  re-offer, full pull. Everything converged the second time.
+
+Rule of thumb that separates the two failure shapes seen today: **partial
+canvas + rejected clicks on a first-ever open = slow/stalled handshake**;
+**a previously-synced warm peer going silent = real bug** (see problems
+below).
+
+## One storage dir = one canvas (`STORAGE_CONFLICT` teeth)
+
+Switching a session's canvas key inside the SAME storage dir crashes at the
+first append: `STORAGE_CONFLICT: Core is already register to group <hash>`
+— because Autobee keeps the dir's writer core under the fixed name `'local'`
+and pins every core to exactly ONE canvas group. Joining canvas B where
+canvas A's writer lives reuses A's core and hypercore refuses the new group.
+(Identified by decoding the printed hash — it was the OLD demo canvas's
+discoveryKey.)
+
+Fixes shipped: every consumer derives its dir **per canvas key** (app:
+`place/<key>`, seeder: `seeder/<key>`), and `backend/canvas.js` refuses a
+keyed join into a dir that already hosts another canvas — early, with the
+owner's key in the message, instead of a cryptic crash later. Autobee
+stamps the owner as `referrer` user-data on the writer core (both join and
+create mode), which is what makes the guard cheap.
+
+## pwsh eats `--` when passing args to npm/npx
+
+`npm run x -- --flag` and `npx cmd -- --flag` silently DROP the args in
+PowerShell (npm even warns `Unknown cli config`). Through `cmd /c` the same
+command forwards fine. Symptoms are nasty: a "mint" command that doesn't
+exit, or an app that "joins a canvas" by minting its own instead. Fix: put
+the args inside package.json scripts ("storage is passed from the script")
+or run through `cmd /c`.
+
 ## How OTA works: no version registry, just the head of a Hypercore
 
 The "wait, what version do peers actually download?" question, end to end:
@@ -400,11 +514,39 @@ Status: **docs bug** — candidate for a PR to
 > agent step, with `timeout-minutes: 30` looming.
 
 - Diagnosed via steps API, not vibes: "Set up job" 3s, "Checkout" 1s, the rest
-  is the **agent step itself** — model-token time, by design of the 
+  is the **agent step itself** — model-token time, by design of the
   `flash`-tier thoroughness.
 - Takeaway that changed the config decision: **don't reach for `variant: high`
   to fix slowness** (that makes it slower); raise `timeout-minutes` instead.
   Model variant is a quality lever; the clock lever is the workflow guard.
+
+## A warm peer went GHOST: appended locally, invisible to the swarm
+
+> Symptom: T2 (`npm start`, default profile) painted fine and streamed its
+> own diffs, but the seeder's log never showed its pixels and its view grew
+> while everyone else's didn't (T2 had 122 placements; seeder + T3 had 104).
+> Its own writer even granted a brand-new joiner that knocked — an alive,
+> functioning peer — while it received NOTHING itself.
+
+- The discs told the story: T2's dir held ~18 "ghost pixels" that existed
+  nowhere else. Later, joining its dir from a plain `bare` process worked
+  perfectly (its ops replicated, a fresh host converged in ~10s). So the
+  writer, the storage, and the network path were all healthy.
+- Conclusion: the app worker's swarms went **dark mid-session** — zero peer
+  connections, silently. Outbound was cached in the view; inbound obviously
+  can't happen. The scariest part is there was no error anywhere.
+- Recovery that worked: wipe BOTH app instance canvas dirs
+  (`%TEMP%\pear\HelloPear\place` and `...\profiles\two\place`) while
+  everything is closed — history survived on the seeder + in the network,
+  the apps rejoined empty, knocked, got granted, and pulled everything back.
+- Suspected trigger (unproven): this dir had seen TWO canvases (pre/post
+  re-mint) plus the storage-switch fix mid-flight — stale dir state.
+  Not reproducible after the per-key storage fix + wipes.
+
+Hardening candidates born from this + the stalled backfill: a connection/
+writable watchdog that surfaces "I can see peers / I am Alone" somewhere
+visible, and a "joining…" UI state (see learning section above). Never let
+a peer be dark AND quiet.
 
 # ❓ Questions (for the public — answered in chat, NOT here)
 
