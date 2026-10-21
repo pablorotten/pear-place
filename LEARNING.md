@@ -222,6 +222,57 @@ computers** — peers are "separate storage + identity", which fakes well:
 - What no rig replaces: whether it _looks_ right → human, i.e. the video
   demo layer.
 
+## How OTA works: no version registry, just the head of a Hypercore
+
+The "wait, what version do peers actually download?" question, end to end:
+
+- **Version truth = `package.json#version` of the staged build.** The runtime
+  gets your running version as an option and only applies an update if the
+  staged one is **higher**. Forget `npm version patch` → peers see your new
+  content and do nothing.
+- **"Latest" is not a registry lookup.** The `pear://<key>` link is a Hyperdrive
+  backed by an append-only Hypercore; latest = that core's current **length/tip**,
+  learned by replicating from seeders. `pear stage` prints it
+  (`^Latest: 1191`) plus a **versioned link** `pear://0.<length>.<key>`.
+- **Staging ≠ releasing.** `pear stage` appends to the stage core but does **not**
+  move the release pointer that provision/production clients poll — `pear
+  provision` (and `pear multisig commit` for production) does. **Release lines**
+  are parallel `pear://` links (dev/staging/rc/prerelease/production); a build
+  follows whichever one sits in its `upgrade` field.
+- **The client cycle:** `PearRuntime({ upgrade, version })` swarms the drive's
+  discovery key → core length advances → `update-scheduled` (random delay up to
+  **1 hour** after a 60s boot grace — spreads the load so seeders don't get a
+  thundering herd; `delay: 0` in dev) → `updating` (mirroring blocks, progress
+  events) → `updated` → `applyUpdate()` atomically swaps the bundle on disk →
+  relaunch. Without a `pear seed` on that link, none of it can download.
+
+**The keys** (mixed these up constantly at first):
+
+| Key | Secret? | What it does |
+| --- | --- | --- |
+| `pear touch` keypair / `PEAR_PRIMARY_KEY` | **yes** | signs every update to your link; *is* your publish right |
+| `pear://<key>` in `upgrade` | no (public) | the app's address; what peers poll |
+| multisig signing keys (`pear multisig keys get`) | yes (password-encrypted) | production quorum — e.g. 2-of-3 cosigners |
+| Apple/Windows certs | yes | OS code signing, unrelated to Pear |
+
+- **Trust model:** signatures are verified while replicating, so a malicious
+  seeder can withhold or serve garbage but never tamper — worst case = no
+  update. Anyone can *copy* your app and re-publish it **under their own key**;
+  they just can't write to yours, so your users' `upgrade` never sees it. The
+  real attack is a leaked primary key (→ push malicious OTA to everyone) or a
+  phishing link; defense = secret hygiene, release lines, multisig quorum.
+- **"I ran `pear touch` and saved nothing — am I cooked?"** No: the secret is
+  stored *for you* in the platform dir (`%APPDATA%\pear` on Windows). Only the
+  public link needs remembering (it's in `package.json#upgrade` anyway). Check
+  write access with `pear cores --all-cores` → `✔ writable`. It is
+  **machine-bound**: lose that directory → mint a new link with `pear touch`
+  and repoint `upgrade` (fine pre-users, painful after).
+
+Sources: [Release pipeline](https://docs.pears.com/pear/explanation/deployment-releasing-apps-p2p) ·
+[Pear OTA](https://docs.pears.com/pear/reference/pear/runtime/#updates) ·
+[Troubleshoot desktop releases](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/troubleshoot-desktop-releases) ·
+[Primary key = write key](https://docs.pears.com/pear/how-to/operate-an-app/github-actions/publish-with-github-actions/#generate-and-store-the-primary-key)
+
 ---
 
 # 🐛 Problems I found
@@ -354,3 +405,16 @@ Status: **docs bug** — candidate for a PR to
 - Takeaway that changed the config decision: **don't reach for `variant: high`
   to fix slowness** (that makes it slower); raise `timeout-minutes` instead.
   Model variant is a quality lever; the clock lever is the workflow guard.
+
+
+# ❓ Questions (for the public — answered in chat, NOT here)
+
+> Things I genuinely asked myself during this process. They're probably
+> interesting to the reader too — left unanswered on purpose.
+
+1. How does `pear://<key>` actually work?
+2. At what point does an app in development get its own `pear://<key>`?
+3. Does its `pear://<key>` change every time I update the app? NO
+4. What happens to peers (users/clients) running a `pear://<key>` app when that app receives an update (OTA)?
+5. I publish a version — but what version do peers actually download, and how does the Pear network know which one is the latest?
+6. If someone copies my app, can they push an update to *my* users without my approval? And this "secret key" — where is it supposed to live?
