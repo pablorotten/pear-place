@@ -1,6 +1,6 @@
 // The canvas "backend": one shared Autobee + Hyperswarm, zero UI imports.
 // Runs anywhere — the Pear worker inside the Electron app, or headless `bare`
-// (see demo.js and smoke.js). No Electron, no Pear APIs in here.
+// (see seeder/ and smoke.js). No Electron, no Pear APIs in here.
 //
 // One path, no branches (see ARCHITECTURE.md):
 //   createCanvas(dir)          → no key: CREATE a canvas and own it
@@ -18,6 +18,7 @@ const Hyperswarm = require('hyperswarm')
 const Corestore = require('corestore')
 const Autobee = require('autobee')
 const b4a = require('b4a')
+const ID = require('hypercore-id-encoding')
 const { SIZE } = require('../shared/canvas-size.js')
 const { makeHandlers, placeOp, cellKey, parseCellKey, parseColor } = require('./apply')
 const { knockTopic, knockMessage, parseKnock } = require('./knock')
@@ -28,6 +29,12 @@ const APPLY_TICK = 1000 // belt-and-braces linearize pass, like the spike
 module.exports = async function createCanvas(dir, canvasKey = null) {
   const store = new Corestore(dir)
   await store.ready()
+  try {
+    await assertFreeStorage(store, canvasKey)
+  } catch (err) {
+    await store.close()
+    throw err
+  }
 
   const placementsListeners = new Set()
   const writableListeners = new Set()
@@ -159,5 +166,35 @@ module.exports = async function createCanvas(dir, canvasKey = null) {
     get writable() {
       return db.writable
     }
+  }
+}
+
+// A storage dir hosts exactly ONE canvas. Autobee keeps the dir's writer core
+// under the fixed name 'local' and pins every core to a single canvas group,
+// so joining a second canvas in the same dir would corrupt the local writer
+// (a cryptic STORAGE_CONFLICT at first append). Every canvas.js session stamps
+// that core with its canvas key as 'referrer' (boot.js keyed joins, and
+// writers.add in create mode), so we can read the dir's owner and refuse a
+// foreign join at open time instead of breaking an append later.
+async function assertFreeStorage(store, canvasKey) {
+  if (!canvasKey) return // create-or-resume: boot() itself decides what this dir owns
+
+  const local = store.get({ name: 'local', active: false })
+  await local.ready()
+  try {
+    const referrer = await local.getUserData('referrer')
+    if (referrer === null) return // no canvas minted in this dir yet — it is fresh
+
+    const owner = ID.normalize(referrer)
+    if (owner === canvasKey) return // resuming its own canvas
+
+    throw new Error(
+      'storage reuse: this dir already hosts canvas ' +
+        owner +
+        ' — delete the dir or give this canvas one of its own ' +
+        '(the seeder and the app derive one per canvas key)'
+    )
+  } finally {
+    await local.close()
   }
 }

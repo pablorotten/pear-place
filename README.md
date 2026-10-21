@@ -4,15 +4,15 @@ A p2p [r/place](https://www.reddit.com/r/place/) clone. Anyone can paint one sha
 
 Built with [Pear](https://pear.run) · [How canvases work](./ARCHITECTURE.md)
 
-## Run it: two peers paint one canvas
+## Run it: the canvas outlives its creator
 
 There is no server. Peers join a canvas by its **key** — the app ships with the
-demo canvas key (`shared/canvas-key.js`), and a headless peer hosts the canvas
-when the desktop app is closed.
+demo canvas key (`shared/canvas-key.js`) — and the canvas is hosted by whoever
+is running: the desktop app when it is open, the **seeder** when it is not.
 
 ```sh
-# terminal 1: headless peer hosting the demo canvas (shares history + grants)
-npm run demo -- <canvas-key from shared/canvas-key.js>
+# terminal 1: the seeder — a headless host in Bare, no window
+npm run seed
 
 # terminal 2: peer one — a desktop window
 npm start
@@ -26,10 +26,25 @@ and the other way around. Both windows show the same canvas key in the status
 line; each repaint is the Autobee `update(view, changes)` diff reaching the
 renderer, never a rescan of the grid.
 
+Now close both windows. The seeder keeps the canvas up: a brand-new peer can
+still join by the key, receive the full canvas, and paint — the seeder holds
+**grant power** and auto-grants newcomers (the knock channel). On a machine
+that never minted this canvas, host it the same way (invoke the bare CLI
+directly so the key reaches the seeder — npm eats arguments after `--` on some
+shells):
+
+```sh
+npx bare seeder/ <canvas-key from shared/canvas-key.js>
+```
+
+The first join is read-only — the seeder knocks and waits for a writable peer
+to grant it. Once granted, that grant lives in the shared history: kill the
+process, start it again, and it comes back writable with zero ceremony.
+
 ### Run your own canvas
 
 ```sh
-npm run demo -- --exit       # mint a canvas, print the key, stop
+npx bare seeder/ --exit      # mint a canvas, print the key, stop
 # paste the printed key into shared/canvas-key.js (DEMO_CANVAS_KEY) and rebuild
 ```
 

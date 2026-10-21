@@ -400,7 +400,7 @@ Status: **docs bug** — candidate for a PR to
 > agent step, with `timeout-minutes: 30` looming.
 
 - Diagnosed via steps API, not vibes: "Set up job" 3s, "Checkout" 1s, the rest
-  is the **agent step itself** — model-token time, by design of the
+  is the **agent step itself** — model-token time, by design of the 
   `flash`-tier thoroughness.
 - Takeaway that changed the config decision: **don't reach for `variant: high`
   to fix slowness** (that makes it slower); raise `timeout-minutes` instead.

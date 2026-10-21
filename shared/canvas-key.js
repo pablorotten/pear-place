@@ -1,13 +1,13 @@
 // THE demo canvas key — the invite (see ARCHITECTURE.md). Every desktop app
 // joins this canvas by default: installing the app and having the key are the
-// same act. The original writer core lives wherever the canvas was created
-// (`npm run demo`; on this project's machine it also hosts when asked) — a
-// resurrected host can come from any writable peer.
+// same act. The canvas is hosted by the seeder (`npm run seed`), whose storage
+// dir holds the original writer core — a restarted seeder comes back writable
+// on its own, and any writable peer can host in its place.
 //
-// Minted at level 2 (issue #5) on the author's machine; the creator's storage
-// dir is `npm run demo`'s, not in the repo.
+// Minted with the seeder at level 3 start (issue #6): `npx bare seeder/ --exit`,
+// key pasted here. The seeder's storage dir is not in the repo.
 //
 // null = no demo canvas yet — the app then creates its own and the worker
 // prints the key to paste here (see README · Run your own canvas).
 
-module.exports = { DEMO_CANVAS_KEY: '1g67hys7p366jibtugzjkdejbnx34ro6nkhupmnmobarhbrfe4ay' }
+module.exports = { DEMO_CANVAS_KEY: 'a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy' }
