@@ -132,7 +132,7 @@ Gotcha 1: forge system check failed on a broken `Roaming\npm` npm shim (its user
 the file when the shim is repaired).
 Gotcha 2: the provisioned drive still carries the OLD package.json (upgrade=stage link) —
 expected; re-stage catches it on the v1.1 OTA cycle in #14.
-- [ ] 11. Commit/PR with the versioned link in the body, closes #12 (repo rule: never commit
+- [x] 11. Commit/PR with the versioned link in the body, closes #12 (repo rule: never commit
       without asking — confirm before doing it)
 
 Risks / decisions already taken
