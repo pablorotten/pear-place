@@ -1,8 +1,9 @@
 // The canvas state, in its purest form: 10,000 cells, one byte each.
 // 0 = white, 1 = black. Index = y * SIZE + x.
-// The board is fed by the backend (Hyperbee persisted, workers/main.js):
-// clicks are delegated via onClick — the backend is the source of truth,
-// and every `placed` event (local or, later, from peers) repaints here.
+// The board is fed by the backend (Autobee view, workers/main.js): clicks are
+// delegated via onClick — the backend is the source of truth, and each
+// `placed` batch (the update(view, changes) diff, local or remote) repaints
+// exactly those cells. The grid never rescans itself for a change.
 
 export const SIZE = 100
 

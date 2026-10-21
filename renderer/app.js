@@ -3,9 +3,24 @@ import { createGrid, SIZE } from './grid.js'
 const bridge = window.bridge
 const decoder = new TextDecoder('utf-8')
 
-// every paint comes from the worker's messages: either the full stored canvas
-// (canvas:grid, after relaunch) or one placement the Hyperbee accepted
-// (canvas:placed — local today, from peers in level 4)
+// every paint comes from the worker's messages: the full stored canvas
+// (canvas:grid, on hello) or a batch of changed cells (canvas:placed — the
+// update(view, changes) diff, local paints AND replicated remote paints)
+const status = document.getElementById('status')
+const canvasInfo = { key: null, writable: null }
+
+function statusText(nPixelsLoaded) {
+  const key = canvasInfo.key ? canvasInfo.key.slice(0, 8) + '…' : 'open…'
+  const access =
+    canvasInfo.writable === null
+      ? ''
+      : canvasInfo.writable
+        ? ' · writable'
+        : ' · read-only — knocking for write access'
+  const pixels = nPixelsLoaded === null ? '' : ' · ' + nPixelsLoaded + ' pixels'
+  return SIZE + 'x' + SIZE + ' · canvas ' + key + pixels + access + ' · no server — peers replicate'
+}
+
 const grid = createGrid(document.getElementById('place'), SIZE, {
   onClick: (x, y) => {
     bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'canvas:place', x, y }))
@@ -70,19 +85,20 @@ const offWorkerIpc = bridge.onWorkerIPC(workers.main, (data) => {
   }
 
   if (parsed && parsed.type === 'canvas:grid') {
-    const status = document.getElementById('status')
-    status.innerText =
-      SIZE +
-      'x' +
-      SIZE +
-      ' · backed by Hyperbee · ' +
-      parsed.placements.length +
-      ' stored placements loaded'
+    canvasInfo.key = parsed.key
+    canvasInfo.writable = parsed.writable
+    status.innerText = statusText(parsed.placements.length)
     for (const placement of parsed.placements) grid.paint(placement.x, placement.y, placement.color)
     return
   }
   if (parsed && parsed.type === 'canvas:placed') {
-    grid.paint(parsed.x, parsed.y, parsed.color)
+    // diff-sized batches only: repaint exactly the cells that moved
+    for (const placement of parsed.placements) grid.paint(placement.x, placement.y, placement.color)
+    return
+  }
+  if (parsed && parsed.type === 'canvas:info') {
+    canvasInfo.writable = parsed.writable
+    status.innerText = statusText(null)
     return
   }
 

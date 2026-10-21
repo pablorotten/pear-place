@@ -19,6 +19,7 @@ const appName = productName ?? name
 const cmd = command(
   appName,
   flag('--storage <dir>', 'pass custom storage to pear-runtime'),
+  flag('--profile <name>', 'run an independent instance (own storage + identity)'),
   flag('--no-updates', 'start without OTA updates'),
   flag('--no-sandbox', 'start without Chromium sandbox').hide()
 )
@@ -26,9 +27,11 @@ const cmd = command(
 cmd.parse(app.isPackaged ? process.argv.slice(1) : process.argv.slice(2))
 
 const pearStore = cmd.flags.storage
+const profile = cmd.flags.profile
 const updates = cmd.flags.updates
 
 if (pearStore) app.setPath('userData', pearStore)
+else if (profile) app.setPath('userData', path.join(app.getPath('userData'), 'profiles', profile))
 
 ipcMain.on('pkg', (evt) => {
   evt.returnValue = pkg
@@ -69,6 +72,10 @@ function getWorker(specifier) {
   }
 
   const extension = isLinux ? '.AppImage' : isMac ? '.app' : '.msix'
+
+  // a --profile instance must get its OWN backend storage too: separate
+  // Corestore + Autobee = a separate peer identity (see backend/canvas.js)
+  if (!pearStore && profile) dir = path.join(dir, 'profiles', profile)
 
   const worker = PearRuntime.run(require.resolve('..' + specifier), [
     updates,

@@ -27,19 +27,26 @@ const store = new Corestore(path.join(updaterConfig.dir, 'pear-runtime', 'corest
 const swarm = new Hyperswarm()
 const pear = new PearRuntime({ ...updaterConfig, swarm, store })
 
-// --- the canvas (ticket #3): placements persisted in Hyperbee ----------------
-// Own storage dir, separate from Pear's OTA updater corestore above. The same
-// backend/canvas factory runs headless under `bare backend/smoke.js`.
+// --- the canvas (ticket #5): one Autobee, replicated peer-to-peer ------------
+// The desktop app always joins the demo canvas by key (shared/canvas-key.js);
+// with no key in there yet it creates its own and would print it once to paste
+// back. The same backend factory runs headless under `bare backend/demo.js`
+// (creator/host) and `bare backend/smoke.p2p.js` (two-peer check).
+const { DEMO_CANVAS_KEY } = require('../shared/canvas-key.js')
 let canvas = null
 let canvasStreamed = false // renderer said hello -> send it the stored canvas
 
-createCanvas(path.join(updaterConfig.dir, 'place')).then(
+createCanvas(path.join(updaterConfig.dir, 'place'), DEMO_CANVAS_KEY).then(
   (c) => {
     canvas = c
-    console.log('canvas open:', c.size + 'x' + c.size, 'placements live')
-    // future peers' placements (level 4) flow through the same listener
-    c.onChange((placed) => {
-      if (canvasStreamed) pipe.write(JSON.stringify({ type: 'canvas:placed', ...placed }))
+    console.log('canvas open:', c.key, 'writable:', c.writable)
+    // every apply cycle reports ONLY the cells that changed (the diff), local
+    // paints and remote paints alike — the renderer repaints exactly those
+    c.onPlacements((placements) => {
+      if (canvasStreamed) pipe.write(JSON.stringify({ type: 'canvas:placed', placements }))
+    })
+    c.onWritable((writable) => {
+      if (canvasStreamed) pipe.write(JSON.stringify({ type: 'canvas:info', writable }))
     })
     if (canvasStreamed) sendCanvasGrid()
   },
@@ -54,7 +61,14 @@ function sendCanvasGrid() {
     .placements()
     .then((placements) => {
       console.log('canvas streamed:', placements.length, 'placements')
-      return pipe.write(JSON.stringify({ type: 'canvas:grid', placements }))
+      return pipe.write(
+        JSON.stringify({
+          type: 'canvas:grid',
+          key: canvas.key,
+          writable: canvas.writable,
+          placements
+        })
+      )
     })
     .catch((err) => console.log('canvas read failed:', err.message))
 }
