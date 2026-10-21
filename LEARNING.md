@@ -476,9 +476,103 @@ Sources: [Release pipeline](https://docs.pears.com/pear/explanation/deployment-r
 [Troubleshoot desktop releases](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/troubleshoot-desktop-releases) ·
 [Primary key = write key](https://docs.pears.com/pear/how-to/operate-an-app/github-actions/publish-with-github-actions/#generate-and-store-the-primary-key)
 
+## Stage link vs provision link: the two `pear://` keys I kept mixing up
+
+> "Why is the link in `package.json` different from the one `pear touch` printed?" —
+> because they're TWO different lines, and only one of them is public.
+
+- **`pear://hchzzy6gg…` = the STAGE line (my private line).** It's the append-only
+  Hypercore I sync every build into. Its write key lives in `%APPDATA%\pear\corestores`
+  — I can publish here, nobody else can. It is never shared: anyone holding the link
+  could _read_ it, i.e. see my whole dev history including the embarrassing versions.
+- **`pear://zjzce1h…` = the PROVISION line (the public one).** Fresh keypair, second
+  `pear touch`. `pear provision <stage-verlink> <it> <boot-verlink>` copies the content
+  from stage onto it, **compacted** — only the final files, append-cruft deleted, leaner
+  drive for distribution. This is the link users' builds poll via `upgrade`.
+- Kitchen model: **stage = the kitchen, provision = the serving window.** Same dish,
+  different doors. Customers never walk into the kitchen.
+- The cycle, forever after: stage the build into the hchzzy line, then provision it into the zjzce line.
+- Verlink gotcha: `pear provision` prints the provisioned drive as a versioned
+  link `pear://0.<length>.<key>` (fork + length + key) - a snapshot address.
+  Peers still poll the bare zjzce link via `upgrade`; the versioned form
+  is the address of one snapshot. Third arg while bootstrapping is the
+  placeholder `pear://0.0.<provision-key>` until a multisig drive exists.
+- The touch's keypair is minted from nothing; a new `pear touch` mints a NEW line, so
+  a second touch was REQUIRED, no "reuse the stage link for provision" — each line is
+  its own keypair, which is the point (independent trust rings).
+
+Source: [Deploy your application — Step 6 Provision](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/deployment/#6-provision)
+
 ---
 
-# 🐛 Problems I found
+## No server ≠ no one online: who must be in the network for a canvas to work
+
+> "The app opened fine but I can't click anything — `joined read-only —
+> knocking for write access`, 0 pixels, every click `rejected`." That's not a
+> bug — that's the p2p model's cold start. A canvas is a live network, and
+> today the network was empty.
+
+**The chain of "who is on the network":**
+
+- **The canvas state (placement history) lives on the DISKS of the peers
+  that have it — nowhere else.** Concretely on this machine: the seeder's
+  `~/AppData/Roaming/pear-place/seeder/self` (the owner — where the canvass
+  writer core + its grant live) and each app instance's own copy under
+  `<tmpdir>\pear\PearPlace\place\<canvas-key>`. No server anywhere; the repo
+  is only the code.
+- **To read:** replicate from seeders online — with zero peers you get an
+  empty view and must wait until someone joins.
+- **To write:** the knock needs an online peer **with grant power** to hear
+  it and grant you (and every peer has to be online for new appends to
+  propagate).
+- **If nobody holding the data is online: the canvas exists but is
+  offline** — the app knocks into the void forever (today's symptom) and,
+  as recorded above, closing everything = everything dies silently.
+
+**Why the "seeder" exists as a separate shell:** `npm run seed` is literally
+the same backend running without UI — "the peer that's always there":
+
+| Scenario                     | Who runs something | How the canvas stays alive                                    |
+| ---------------------------- | ------------------ | ------------------------------------------------------------- |
+| Dev / 2 peers                | me                 | the 3-terminal story: seeder + app(s)                          |
+| Assessment demo              | me, during video   | seeder on the old 2nd machine = the "always-on" one            |
+| Production                   | someone, ALWAYS    | a small VPS with `pear seed` / the seeder — _the_ "server" of the p2p system, except it's just another peer with no special powers |
+
+**The nuance for the pitch/architecture story:** there is no central
+authority. The seeder is "just another writer whose grant is in shared
+history". IfPear goes down, ANY granted peer can hear knocks and auto-grant
+fresh arrivals (the knock channel is open to every writable peer), and every
+peer can hold the full copy. Nothing in the backend depends on a single
+host — only on **at least one peer holding the data being online.**
+
+**Where to host that always-on peer** (asked for Vercel/GitHub — the seeder
+is a long-lived process holding Hyperswarm sockets, which decides for me):
+
+| Place             | Verdict | Why                                                                       |
+| ----------------- | ------- | ------------------------------------------------------------------------- |
+| Vercel            | ❌ no   | serverless/edge: ephemeral functions, no persistent TCP sockets           |
+| GitHub Actions    | 🟡 semi | ephemeral runners — a job can seed up to ~6h and re-trigger on schedule; fine fordemo windows, gaps between jobs kill it |
+| Small VPS / RPi / | ✅ yes  | persistent process + stable IP = exactly what the docs prescribe          |
+
+- VPS recipe:
+  `git clone` + `npm i --ignore-scripts=true` → `npx bare seeder/` (canvas
+  host) → `npx pear seed pear://<link>` (OTA binary host) → keep alive with
+  a systemd unit or tmux. Hyperswarm does NAT/discovery, so the VPS needs no
+  port forwarding.
+  - GH Actions sketch: `schedule: */30 * * * *` job running
+  `timeout 1700 npx bare seeder/` — works for demos, not for always-on.
+- For the video: a good narrative beat — "no server means no corporate
+  backend, it means _neighbors that are switched on_" + demo the pain
+  (canvas offline when everyone closes) vs the fix (seeder on a VPS/2nd
+  machine → canvas comes back to life).
+- Production-grade pointer straight from the docs: "In production, run
+  `pear seed` on at least one always-online machine (a small VPS works) so
+  updates keep flowing while developer laptops sleep."
+
+Source: [Ship your app — seeding](https://docs.pears.com/p2p/getting-started/build-a-peer-to-peer-chat/ship/) ·
+[Deploy over-the-air updates](https://docs.pears.com/p2p/getting-started/build-a-peer-to-peer-chat/update/) —
+plus this session's own cold-start read-only experiment.
+
 
 ## Pear commands print NOTHING (the silent sidecar saga)
 

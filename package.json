@@ -2,7 +2,7 @@
   "name": "pear-place",
   "productName": "PearPlace",
   "version": "1.0.0",
-  "upgrade": "pear://hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy",
+  "upgrade": "pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto",
   "description": "A p2p r/place clone.",
   "license": "MIT",
   "author": "Pablo <pablorottendev@gmail.com>",

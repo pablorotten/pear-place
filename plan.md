@@ -106,17 +106,32 @@ isn't smooth for an open canvas, fall back to the deterministic-merge pattern ab
      node_modules — stage does NOT respect .gitignore). The correct shape is staging a
      **deployment dir**, not the repo. Moved down below as the real flow.
 - [x] 4. `npm run make` → distributable ready (see block above)
-- [ ] 5. `cd ..` (OUTSIDE the repo) → `pear build`:
-     `pear build --package=.\pear-place\package.json --win32-x64-app .\pear-place\out\PearPlace-win32-x64\PearPlace.msix --target pear-place-1.0.0`
+- [x] 5. `cd ..` (OUTSIDE the repo) → `pear build` ✔ **Build complete!**
+      `pear build --package=.\pear-place\package.json --win32-x64-app .\pear-place\out\PearPlace-win32-x64\PearPlace.msix --target pear-place-1.0.0`
      → deployment dir `pear-place-1.0.0` (only /package.json + /by-arch/…)
-- [ ] 6. `pear stage --dry-run pear://hchzzy6gg… .\pear-place-1.0.0`
-     → the diff must be ~2 entries (package.json + by-arch/…). If .git shows up = wrong.
-- [ ] 7. `pear stage pear://hchzzy6gg… .\pear-place-1.0.0` → capture `^Latest: <length>` and the
-     versioned link `pear://0.<length>.<key>` → record it in the issue comment (#12/#14)
-- [ ] 8. `pear info <link>` → `writable: true` (after the real stage it also shows content)
-- [ ] 9. Boot check — `npm start`: window opens, no updater errors (dev runs `--no-updates`, the
+- [x] 6. `pear stage --dry-run pear://hchzzy6gg… .\pear-place-1.0.0`
+      → diff verificado: exactamente `/package.json (+2.8kB)` + `/by-arch/win32-x64/app/PearPlace.msix (+171.4MB)`, cero leaks
+- [x] 7. `pear stage pear://hchzzy6gg… .\pear-place-1.0.0` → **Staging complete!**
+      `^Latest: 3` · versioned link `pear://0.3.hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy`
+      (capturado 21/oct; este tip es lo que poll-ean los peers. Pendiente: registrarlo en comentario de #12/#14)
+- [x] 8. `pear info <link>` ✔
+      `writable: true` · `name: pear-place` · `version 1.0.0` · `productName: PearPlace` ·
+      `length: 3` · `blobs.byteLength: 171428064` · verlink = `pear://0.3.hchzzy6gg…`
+- [x] 9. Boot check — `npm start`: window opens, no updater errors (dev runs `--no-updates`, the
      link only has to be valid — and it now is, ours)
-- [ ] 10. Provision link (2nd `pear touch`, cwd doesn't matter) → `pear provision <stage-verlink> <provision-link> <verlink>` → repoint `upgrade` at the provision link + one rebuild
+- [x] 10. Provision link:
+```sh
+pear touch
+pear provision --dry-run pear://0.3.hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto pear://0.0.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+pear provision pear://0.3.hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto pear://0.0.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+DONE 22/oct: provisioned verlink `pear://0.3.zjzce1hukx…`; `upgrade` repointed at the bare
+provision link + rebuild ✔ (fresh signed `.msix` 22-Oct 0:50).
+Gotcha 1: forge system check failed on a broken `Roaming\npm` npm shim (its user agent is
+`npm/undefined`) → skipped via `~/.skip-forge-system-check` (npm 11 is allowlisted anyway; remove
+the file when the shim is repaired).
+Gotcha 2: the provisioned drive still carries the OLD package.json (upgrade=stage link) —
+expected; re-stage catches it on the v1.1 OTA cycle in #14.
 - [ ] 11. Commit/PR with the versioned link in the body, closes #12 (repo rule: never commit
       without asking — confirm before doing it)
 
