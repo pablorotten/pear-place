@@ -42,3 +42,8 @@ Thumbs.db
 
 # ── local tooling (not part of the submission) ──
 opencode.json
+
+# spike runtime junk (storage + captured stdout)
+spike-storage-*/
+spike-w.out
+spike-w.err
