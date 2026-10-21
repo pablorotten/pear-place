@@ -29,14 +29,20 @@ const pear = new PearRuntime({ ...updaterConfig, swarm, store })
 
 // --- the canvas (ticket #5): one Autobee, replicated peer-to-peer ------------
 // The desktop app always joins the demo canvas by key (shared/canvas-key.js);
-// with no key in there yet it creates its own and would print it once to paste
-// back. The same backend factory runs headless under `bare backend/demo.js`
-// (creator/host) and `bare backend/smoke.p2p.js` (two-peer check).
+// with no key in there yet it creates its own and the worker prints the key
+// once to paste back. The same backend factory also runs headless under
+// `bare seeder/` (the durable host) and `bare backend/smoke.p2p.js`.
 const { DEMO_CANVAS_KEY } = require('../shared/canvas-key.js')
 let canvas = null
 let canvasStreamed = false // renderer said hello -> send it the stored canvas
 
-createCanvas(path.join(updaterConfig.dir, 'place'), DEMO_CANVAS_KEY).then(
+// a storage dir hosts exactly one canvas (see backend/canvas.js): a dir's
+// writer core is minted for the canvas first seen there, so the app derives
+// its dir from the canvas key — switching keys means switching dirs
+createCanvas(
+  path.join(updaterConfig.dir, 'place', DEMO_CANVAS_KEY || 'self'),
+  DEMO_CANVAS_KEY
+).then(
   (c) => {
     canvas = c
     console.log('canvas open:', c.key, 'writable:', c.writable)

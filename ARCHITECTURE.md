@@ -41,11 +41,19 @@ whoever created it. If that peer goes offline, new joiners find peers but can't
 fetch history. That's what the **seeder** is for: the same backend, headless in
 Bare, hosting the canvas when the creator's app is closed.
 
+Write access makes the hosting durable: once a peer has been granted, the grant
+is part of the shared history, so a restarted seeder comes back writable with
+zero ceremony — and holds **grant power**: newcomers that knock are auto-granted
+even when the original creator has been offline for hours.
+
 ## In the app
 
 `backend/` takes an optional canvas key:
 
 - `bare seeder/` → creates a canvas, prints its key (creator/seeder mode)
 - `bare seeder/ <key>` → joins an existing canvas
+
+Storage is deterministic and resumable: the seeder's own canvas lives under
+`pear-place/seeder/self`, a joined canvas under `pear-place/seeder/<key>`.
 
 The desktop app ships with the demo canvas key as its default.
