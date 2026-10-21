@@ -417,3 +417,4 @@ Status: **docs bug** — candidate for a PR to
 4. What happens to peers (users/clients) running a `pear://<key>` app when that app receives an update (OTA)?
 5. I publish a version — but what version do peers actually download, and how does the Pear network know which one is the latest?
 6. If someone copies my app, can they push an update to _my_ users without my approval? And this "secret key" — where is it supposed to live?
+7. Does pear automatically include other libraries such as bare, hyperbee, hyperswarm...
