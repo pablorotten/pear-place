@@ -146,7 +146,62 @@ for CI and automations") — the generalizable pattern:
 - Rotation is cheap: create key v2 → `gh secret set` → observe one green
   run → deactivate v1. Cost of a mistake: one paste command.
 
-## Testing a 2-peer p2p app with one computer
+## What is a "spike"?
+
+"New term picked up mid-project" — a spike is a **little disposable experiment
+whose ONLY deliverable is an answer** to one technical question, before
+committing to build on top of it. The name comes from climbing: you hammer a
+spike in to test the route before trusting it with the full climb.
+
+- Cheap on purpose: ugly scripts in their own folder, no polish, no
+  integration, no tests-lint-clean requirement.
+- It produces a **decision**, not a feature — that's the deliverable ("post
+  the answer as a comment", like #4 asked).
+- The discipline is to kill it when it answered: integrate what was learned
+  into the real code and delete the scaffolding eventually. Continuing to
+  beautify a spike = procrastination with good lighting.
+
+What it would have cost NOT to spike: integrating Autobee into the real
+backend, two days in, and then discovering the grant flow doesn't fit an open
+canvas — rewrite under deadline.
+
+## How a no-server canvas lets strangers write (knock + auto-grant)
+
+The r/place-we-want question: without a server, who "lets" a stranger paint?
+The stack can't even ask a server, because there isn't one. The mechanism that
+solves it (spike in `spike/autobee/`):
+
+- **Reading is never gated.** Join an Autobee by key and you replicate the
+  full view immediately — stranger or not. Only APPENDING is gated.
+- **A grant is an op in the shared history, not a permission call.** A
+  writable peer appends `{ addWriter: <writer-id> }`; every peer's `apply`
+  replays it, reaches the same conclusion, and the new writer's local core
+  joins the linearization. That's why there is no "central allowlist" to lose:
+  the history IS the access list.
+- **The auto-grant channel ("knock"):** peers send their `db.local.id` on a
+  second Hyperswarm topic derived from the canvas key. Any writable peer that
+  hears a knock appends the addWriter op by itself — zero manual steps, and
+  works even if the original creator is gone (granted peers can grant too).
+- **Same spirit as r/place's cooldown:** it's an honor system. The knock
+  channel is unauthenticated by design (topic = hash of the canvas key —
+  "having the key" is the identity).
+
+Two details that came with Autobee 2.2.2:
+
+- `db.discoveryKey` is the pointer for "find other peers"; `db.id` is the
+  string shareable as a canvas key. The knock topic is derived from `db.id`.
+- Two swarms are needed: a Hyperswarm connection doesn't carry the topic it
+  was opened for, so canvas replication traffic and knock traffic live apart.
+
+## Who found whom? (Hyperswarm discovery, in one breath)
+
+`swarm.join(topic)` announces/finds peers for that topic via the Holepunch
+DHT — a public "phone book + meeting point" that only ever learns where peers
+are, never what peers say. Data flows peer↔peer directly once they connect.
+The DHT just says "there's a peer behind that door"; Hypercore replication
+(`db.replicate(conn)`) is what walks through it. That's why two people in
+different countries sharing a canvas key behave exactly like two processes on
+one machine: the mechanics don't know where they run.
 
 #5 ("two peers paint one canvas") needs **independent peers, not separate
 computers** — peers are "separate storage + identity", which fakes well:
