@@ -33,6 +33,53 @@ runtime refuses to boot without.
 
 Source: [Start a desktop app from the hello-pear-electron template](https://docs.pears.com/p2p/getting-started/from-a-template/start-from-hello-pear-electron/)
 
+## The keypair: where it's born, where it lives, what happens when the machine burns
+
+> The link is public; the _secret_ is the publish right. And normal Pear setup
+> binds that right to the machine — production exists to unbind it.
+
+- **Born, not downloaded.** `pear touch` generates a fresh keypair out of thin
+  air. The public half prints as the `pear://<key>` link (an address — safe to
+  commit in `package.json#upgrade`). The private/write key is **never shown**:
+  the CLI generates it and stores it itself.
+- **Where it lives:** the Pear platform dir — `%APPDATA%\pear` on Windows.
+  That folder _is_ the publish right. Verify ownership any time:
+  `pear cores --all-cores` → `✔ writable`, or `pear info <link>` → `writable`.
+- **Machine burns → the link is frozen, not destroyed.** The docs are blunt:
+  "you cannot undelete the same keys from thin air". Recovery for a lost stage
+  link: new `pear touch`, stage to it, repoint `upgrade`… except every deployed
+  binary has the **old link baked into its package.json**, so installed users
+  keep polling the dead line and must reinstall from the new link. Fine with
+  zero users, painful after. (A provision link can be rebuilt from a live
+  production drive instead — see the recover flow in the docs.)
+- **Stage vs provision = two links, two touches.** Stage is the append-only
+  core you sync builds into; provision is the lean snapshot peers poll. The
+  tutorial mints one of each — `pear touch` doesn't even know or care about
+  your project folder, cwd does not matter.
+- **How production keeps the right alive:** detach it from any single machine.
+  Two tiers:
+  1. _You hold the key, machines borrow it._ Generate the primary/write key
+     yourself (random 32 bytes), store it in a password manager / vault, and
+     machines (laptop, CI) get it transiently via the `PEAR_PRIMARY_KEY`
+     env var / GitHub repo secret. Laptop burns → nothing lost, a fresh
+     machine restores full capability from the vault.
+  2. _Multisig — the production answer._ Releases are signed by a **quorum**
+     (e.g. 2-of-3) of password-encrypted keys (`pear multisig keys get`),
+     each on a separate machine/person, backed up via `keys paths`. The
+     production link is derived from the config alone (`publicKeys` +
+     `quorum` + `namespace` in `pear.json`), so it's machine-independent by
+     construction. Multisig drives are explicitly **not machine-bound**:
+     write access = signing capability, so losing one (even two) keys still
+     leaves a quorum of survivors who can keep producing releases forever.
+- Mental model to keep: **stage link = disposable scaffolding; production
+  durability = custody.** Either you personally hold the write key in a vault,
+  or trust is distributed across a quorum. A machine-bound key is by definition
+  a dev-time key.
+
+Source: [Troubleshoot desktop releases — Recovering from lost write access](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/troubleshoot-desktop-releases/#recovering-from-lost-write-access) ·
+[Ship your app — touch, upgrade link, seed](https://docs.pears.com/p2p/getting-started/build-a-peer-to-peer-chat/ship/#touch-set-the-upgrade-link-and-seed) ·
+[Publish with GitHub Actions — generate and store the primary key](https://docs.pears.com/pear/how-to/operate-an-app/github-actions/publish-with-github-actions/#generate-and-store-the-primary-key)
+
 ## What is the sidecar?
 
 The Pear platform runs as **two pieces**: a fat background process and a thin CLI.
