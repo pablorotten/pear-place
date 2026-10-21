@@ -62,7 +62,7 @@ module.exports = {
       config: {
         appManifest: path.join(__dirname, 'build', 'AppxManifest.xml'),
         packageAssets: path.join(__dirname, 'build', 'msix-assets'),
-        windowsKitVersion: getWindowsKitVersion(),
+        windowsKitVersion: getWindowsKitVersion() ?? '10.0.22621.0',
         ...(process.env.WINDOWS_SIGN_HOOK
           ? {
               windowsSignOptions: {
@@ -90,7 +90,7 @@ module.exports = {
       name: 'pear-electron-forge-maker-flatpak',
       platforms: ['linux'],
       config: {
-        appId: 'com.pears.HelloPear',
+        appId: 'com.pablodevrel.PearPlace',
         icon: `${packagerConfig.icon}.png`,
         comment: 'Integrating Pear into a hello world electron desktop app',
         categories: ['Development']

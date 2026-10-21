@@ -4,16 +4,16 @@
 -->
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.pears.HelloPear</id>
+  <id>com.pablodevrel.PearPlace</id>
 
-  <name>HelloPear</name>
-  <summary>Integrating Pear into a hello world electron desktop app</summary>
+  <name>PearPlace</name>
+  <summary>A p2p r/place clone — paint together, no server</summary>
 
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
 
-  <developer id="io.tether">
-    <name>Tether Data S.A. de C.V.</name>
+  <developer id="com.pablodevrel">
+    <name>Pablo</name>
   </developer>
 
   <content_rating type="oars-1.1"/>
@@ -36,7 +36,9 @@
   </supports>
 
   <description>
-    <p>End-to-end boilerplate for embedding pear-runtime into Electron apps and deploying peer-to-peer application updates.</p>
+    <p>A collaborative r/place-style canvas with no server: peers are the
+    backend. Pear + Holepunch (Hypercore/Hyperbee) keeps every painting in
+    shared history and pulls updates over the air.</p>
     <ul>
       <li>Peer-to-Peer Over-the-Air updates with update-restart</li>
       <li>Embedded bare runtime workers</li>
@@ -45,10 +47,5 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">com.pears.HelloPear.desktop</launchable>
-  <screenshots>
-    <screenshot type="default">
-      <image>https://raw.githubusercontent.com/holepunchto/hello-pear-electron/refs/heads/main/assets/flatpak-screenshot.png</image>
-    </screenshot>
-  </screenshots>
+  <launchable type="desktop-id">com.pablodevrel.PearPlace.desktop</launchable>
 </component>
