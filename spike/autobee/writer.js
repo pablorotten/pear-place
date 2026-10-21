@@ -34,10 +34,13 @@ async function main() {
   await db.ready()
 
   // db.replicate, not store.replicate: it also registers the wakeup stream.
-  // error swallowers: a peer vanishing mid-replication reads as ECONNRESET
+  // error swallowers: peers come and go constantly on an open canvas — a peer
+  // disconnecting mid-replication reads as a phantom ECONNRESET, never fatal
   swarm.on('connection', (conn) => {
     conn.on('error', () => {})
-    db.replicate(conn)
+    const stream = db.replicate(conn)
+    stream.on('error', () => {})
+    if (stream !== conn) conn.on('close', () => stream.destroy())
   })
   const discovery = swarm.join(db.discoveryKey)
   await discovery.flushed()
@@ -45,6 +48,7 @@ async function main() {
   const granted = new Set()
 
   knock.on('connection', (conn) => {
+    conn.on('error', () => {}) // knock peers hang up too — same phantom reset
     conn.on('data', async (data) => {
       const writerId = parseKnock(data)
       if (writerId === null || granted.has(writerId) || !db.writable) return

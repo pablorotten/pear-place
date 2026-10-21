@@ -40,7 +40,10 @@ async function main() {
   await swarm.join(db.discoveryKey).flushed()
 
   // knock: hand our writer id to any writable peer listening there
-  knock.on('connection', (conn) => conn.write(knockMessage(db.local.id)))
+  knock.on('connection', (conn) => {
+    conn.on('error', () => {})
+    conn.write(knockMessage(db.local.id))
+  })
   await knock.join(knockTopic(canvasKey)).flushed()
 
   // wait for topic lookups to settle before deciding we're read-only
@@ -59,6 +62,10 @@ async function main() {
   await db.append(applyHandlers.placeOp(20, 20, 3))
   console.log('done — stranger painted with ZERO manual grants')
 
+  // teardown order matters: drop the network first so the remote side sees a
+  // clean stream end instead of a reset while its writes are still inflight
+  await swarm.destroy()
+  await knock.destroy()
   await db.close()
   Bare.exit(0)
 }
