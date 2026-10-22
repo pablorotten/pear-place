@@ -503,6 +503,26 @@ Sources: [Release pipeline](https://docs.pears.com/pear/explanation/deployment-r
 
 Source: [Deploy your application — Step 6 Provision](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/deployment/#6-provision)
 
+## Production: who seeds when I sleep?
+
+> "A provisioned app is 'in the network' — so is it uploaded somewhere?" No.
+> There is no somewhere: bytes on disk, DHT for discovery, peers for the rest.
+
+- **"On the Pear network" = "held by an online machine".** The DHT only matches
+  addresses; the app files travel peer-to-peer. If the only disk holding them
+  is asleep, the swarm has no one to ask and `pear install` hangs.
+- The production answer = **paid uptime for the distributor, not servers of logic**:
+  1. a small VPS (or two, spread around) running
+     `pear seed pear://zjzce1h…` under systemd — a read-only server with NO
+     privileged write key, its whole job is "hold + announce".
+  2. the runtime already spreads OTA checks up to 1h with a random delay, so
+     brief seeder blips get absorbed.
+  3. community mirrors are free extras — anyone can seed without special rights;
+     same for the canvas, any granted/unprivileged peer can serve reads.
+- Canvas seeding is a **separate** online-peer question: `seeder/` is the
+  always-on peer for the Hyperbee canvas. Same rule, both kinds of data:
+  **>= 1 online peer holding the bytes, or it's offline.**
+
 ---
 
 ## No server ≠ no one online: who must be in the network for a canvas to work
@@ -730,6 +750,61 @@ Hardening candidates born from this + the stalled backfill: a connection/
 writable watchdog that surfaces "I can see peers / I am Alone" somewhere
 visible, and a "joining…" UI state (see learning section above). Never let
 a peer be dark AND quiet.
+
+## `pear install` on a foreign machine: 0x800B0109 (untrusted root)
+
+> Symptom: `pear install pear://0.3.zjzce1h…` on the OTHER computer dies with
+> `error 0x800B0109: The root certificate of the signature in the app package
+> or bundle must be trusted.`
+
+- Not a Pear problem — **Windows refuses to run packages signed by a root it
+  doesn't trust.** Our msix is signed with the self-signed dev cert
+  (`CN=Pablo`). The dev machine trusts it because it minted it AND imported
+  it; a fresh machine trusts only public roots.
+- Fix, one-time per machine (public half only, safe to share):
+  1. On the signing machine, export the cert:
+     ```sh
+     Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
+       Where-Object Subject -match "CN=Pablo" |
+       Export-Certificate -FilePath PearPlace-dev.cer
+     ```
+     (empty result → look in `LocalMachine\My` or `LocalMachine\TrustedPeople`)
+  2. Copy the `.cer` to the target machine → double-click →
+     **Local Machine** → **Trusted Root Certification Authorities**.
+  3. Retry `pear install`.
+- Mental slot: **Pear write key ≠ Windows code-sign cert.** The Pear keypair
+  guards OTA authenticity inside the swarm; the msix signature guards "is this
+  an installer Windows will let run". Two independent trust rings, both live
+  on the dev machine.
+- Production aside: a proper OID code-signing cert (DigiCert/Certum etc.)
+  chains to public roots, so end users never do step 2. For the assessment:
+  importing the dev cert on the test machine is the accepted dogfooding move.
+
+## First install + first paint: the two-seeders confusion (bit me back to back)
+
+> Beat 1: `pear install pear://0.3.zjzce1h…` worked **on my own machine** —
+> after the cert import. Beat 2: the freshly-installed app opened, canvas
+> joined, and every click said `canvas:place rejected` — while "seeding".
+> Both "failures" were me seeding the WRONG thing.
+
+- **There are two seeders.** `pear seed <app-link>` serves the **binary**
+  (the msix that `pear install` fetches). `npm run seed` (bare `seeder/`)
+  hosts the **canvas** (Hyperbee placements + grant power for knocks). Same
+  shape — a peer serving content it holds — completely different payloads.
+- The symptom vocabulary now reads instantly:
+  - `error 0x800B0109` during install → Windows trust ring, not Pear:
+    `Import-Certificate ...\LocalMachine\Root` (admin) then retry.
+  - app opens, `joined read-only — knocking`, clicks rejected → the **canvas**
+    seeder is missing. Start `npm run seed`; knock gets granted; writable.
+  - `pear install` hangs before printing anything → the **binary** seeder is
+    missing (`pear seed pear://zjzce1h…`).
+- Also learned: **signing ≠ trusting** even on the signing machine. Forge
+  signed the msix with `CN=Pablo`, but that cert still had to be imported
+  into this machine's own `Trusted Root Certification Authorities` before
+  Windows would run the package. The private-key cert in `My` is not a
+  trust anchor; the `.cer` (public half) imported into `Root` is.
+- Both seeders run side-by-side happily: `pear seed` in one terminal and
+  `npm run seed` in another = app distributable + canvas alive.
 
 # ❓ Questions (for the public — answered in chat, NOT here)
 

@@ -52,4 +52,59 @@ Only appending is gated: anyone with the key can read the canvas immediately,
 and any writable peer auto-grants newcomers (the knock channel). See
 [ARCHITECTURE.md](./ARCHITECTURE.md) for why that works with no server.
 
+## Install the app from the p2p network (any Windows machine)
+
+The app is distributed as a `pear://` link — no store, no download page. The
+package (an `.msix` signed with a self-signed dev cert) sits on the swarm; a
+seeder must be online for the bytes to exist.
+
+```sh
+# 0. once, on the machine that holds the app (until a VPS takes over):
+pear seed pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+
+# 1. on the machine installing: install Pear from https://install.pears.com
+# 2. trust the dev signing cert (public half only — shipped in this repo)
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/pablorotten/pear-place/main/PearPlace-dev.cer -OutFile PearPlace-dev.cer
+Import-Certificate -FilePath .\PearPlace-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
+#    (one-time, needs an admin shell — self-signed root, no CA vouching)
+
+# 3. install the app from the swarm
+pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+
+Then open **PearPlace** from the Start menu. Updates propagate **over the
+air**: when a new version is staged+provisioned onto that same link, installed
+apps pick it up without reinstalling.
+
+> Why the cert step: Windows verifies the msix signature against anchors it
+> trusts. Our dev cert is self-signed, so each machine imports its public half
+> once — until the app ships with a code-signing cert from a public CA.
+
+### First paint needs the canvas alive (p2p ≠ storage in the cloud)
+
+Two different seeders, both needed, both just peers:
+
+| Seeder                    | Serves                        | Run with                          |
+| ------------------------- | ----------------------------- | --------------------------------- |
+| the **binary** seeder     | the app installer (`.msix`)   | `pear seed pear://zjzce1h…`       |
+| the **canvas** seeder     | placements + write grants     | `npm run seed`                    |
+
+If the window opens and clicks say `rejected`, the canvas seeder isn't
+running — start `npm run seed` and the knock gets an answer.
+
 Project board: https://github.com/users/pablorotten/projects/7/views/1
+
+## Temp: Install pear in w10 machine
+
+```sh
+# 1. get the pear CLI: download pear.exe from https://install.pears.com in the browser
+#    (the PowerShell bootstrap script fails on old TLS stacks; the .exe download doesn't)
+.\pear.exe -v        # -> 3.6.0
+
+# 2. download the cert from the repo + trust it (run as ADMIN)
+Invoke-WebRequest "https://raw.githubusercontent.com/pablorotten/pear-place/main/PearPlace-dev.cer" -OutFile PearPlace-dev.cer
+Import-Certificate -FilePath .\PearPlace-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
+
+# 3. install the app (needs a `pear seed` running on the host machine)
+.\pear.exe install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
