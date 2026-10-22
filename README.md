@@ -63,7 +63,8 @@ seeder must be online for the bytes to exist.
 pear seed pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
 
 # 1. on the machine installing: install Pear from https://install.pears.com
-# 2. trust the dev signing cert (public half only — ships in the repo root)
+# 2. trust the dev signing cert (public half only — shipped in this repo)
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/pablorotten/pear-place/main/PearPlace-dev.cer -OutFile PearPlace-dev.cer
 Import-Certificate -FilePath .\PearPlace-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
 #    (one-time, needs an admin shell — self-signed root, no CA vouching)
 
@@ -92,3 +93,18 @@ If the window opens and clicks say `rejected`, the canvas seeder isn't
 running — start `npm run seed` and the knock gets an answer.
 
 Project board: https://github.com/users/pablorotten/projects/7/views/1
+
+## Temp: Install pear in w10 machine
+
+```sh
+# 1. install Pear CLI (exit & reopen the terminal after)
+winget install Pear.PearCLI
+pear -v
+
+# 2. download the cert from the repo + trust it (run as ADMIN)
+Invoke-WebRequest "https://raw.githubusercontent.com/pablorotten/pear-place/main/PearPlace-dev.cer" -OutFile PearPlace-dev.cer
+Import-Certificate -FilePath .\PearPlace-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
+
+# 3. install the app (needs a `pear seed` running on the host machine)
+pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
