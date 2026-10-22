@@ -806,6 +806,45 @@ a peer be dark AND quiet.
 - Both seeders run side-by-side happily: `pear seed` in one terminal and
   `npm run seed` in another = app distributable + canvas alive.
 
+## Follow one click: how a paint syncs across peers (the whole trace)
+
+> The best 3-min explanation of the app is the life of ONE click. Five code
+> stops, two libraries, zero servers. This is the trace to script the video
+> from (and the answer to "where's the sync logic?").
+
+- **Stop 1 — the click is a wish, not a paint** (renderer/app.js:25):
+  `onClick → bridge.writeWorkerIPC({ type: 'canvas:place', x, y })`. The window
+  owns no canvas; it just posts a message to the Pear worker.
+- **Stop 2 — the worker routes it** (workers/main.js:129):
+  `if (msg.type === 'canvas:place') await canvas.place(msg.x, msg.y)`. One line
+  — and proof the backend is shared: no Electron APIs, pure core string.
+- **Stop 3 — a paint is an append** (backend/canvas.js:119):
+  `await db.append(placeOp(x, y, color))`. And the library story is one line
+  earlier (canvas.js:42): `db = new Autobee(store, canvasKey, makeHandlers(...))`
+  — Autobee owns the writer core (made by Corestore) AND the Hyperbee view.
+  The snap: `place()` returns instantly with `{x,y,color}` — it has NOT painted
+  anything yet; it wrote a log entry.
+- **Stop 4 — the logs travel, never the canvas** (backend/canvas.js:56-64):
+  two Hyperswarm lines: `swarm.join(db.discoveryKey)` (meet by hash of the key —
+  the key itself is never broadcast) and `db.replicate(conn)` on connection
+  (swap log entries, made by Autobee, not Corestore — the wakeup stream is why).
+- **Stop 5 — same program, other side** (backend/apply.js:47):
+  `apply(nodes, view, host)` replays the ONE linearized order into the view;
+  every peer derives the same pixels independently. Then the diff leaves:
+  `makeHandlers().update(view, changes)` (apply.js:92) checks out the view
+  before/after heads, `createDiffStream` → `onPlacements` → workers/main.js:51
+  → `{type:'canvas:placed', placements}` → renderer/app.js:94 `grid.paint(...)`.
+- **The loop closes**: the pixel I painted comes back through 5 stops and 2
+  peers in ~1s — `canvas:placed` fires for my OWN clicks too (the local append
+  goes through the same apply), so there is exactly one code path for
+  local-and-remote paints. That single-path property is the video's money shot.
+- **Concurrency question to be ready for**: two peers click the same cell
+  "simultaneously" — there is no simultaneity after Autobee: both ops enter
+  the shared order, `tryPut` overwrites (place is overwrite-safe like
+  r/place), and the later op in the linearized order wins — identically on
+  every peer. Brief flicker while ops are mid-flight; no permanent
+  disagreement, because disagreement would require two different orders.
+
 # ❓ Questions (for the public — answered in chat, NOT here)
 
 > Things I genuinely asked myself during this process. They're probably
