@@ -97,8 +97,8 @@ Project board: https://github.com/users/pablorotten/projects/7/views/1
 ## Temp: Install pear in w10 machine
 
 ```sh
-# 1. install Pear CLI (exit & reopen the terminal after)
-winget install Pear.PearCLI
+# 1. install Pear CLI (official bootstrap; reopen the terminal after)
+irm https://install.pears.com/pear.ps1 | iex
 pear -v
 
 # 2. download the cert from the repo + trust it (run as ADMIN)
