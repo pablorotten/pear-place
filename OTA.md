@@ -87,14 +87,15 @@ pear provision <source-verlink> <target-link> <production-verlink>
 ```
 
 Remember:
-- `<source-verlink>`: New released `verlink` in step 3, remember `<fork>.<length>.<stage-link>`
+- `<source-verlink>`: New released `verlink` from step 3, `<fork>.<length>.<stage-link>`
 - `<target-link>`: The one and only `<provision-key>`
-- `<production-verlink>`: Previously released `verlink`
+- `<production-verlink>`: Always `pear://0.0.<provision-key>` on every release (same for all releases, it is NOT the previous release's verlink)
 
 For example:
 ```sh
-pear provision pear://0.5.hchzzy.... pear://zjzce... pear://0.3.zjzce....```
-Where `aaa123` is the stage key and `bbb456` the provision key. On every release the production verlink is `pear://0.0.<provision-key>`.
+pear provision pear://0.5.hchzzy6gg… pear://zjzce1h… pear://0.0.zjzce1h…
+```
+Where `hchzzy6gg…` is the stage key and `zjzce1h…` the provision key.
 
 ## Seed the new version
 
@@ -105,3 +106,4 @@ pear seed <provision-link>
 ```
 
 Peers running the installed app will pick the new version up over the air (the app must advertise a higher version in `package.json`, which is why we bumped it).
+
