@@ -806,6 +806,92 @@ a peer be dark AND quiet.
 - Both seeders run side-by-side happily: `pear seed` in one terminal and
   `npm run seed` in another = app distributable + canvas alive.
 
+## App updates via OTA — shipping v1.0.1 (issue #14): screen size + title
+
+> The full loop: change code → bump version → build msix → build → stage →
+> provision → seed → let a peer's updater land it. The first OTA release in
+> practice, tested locally in dev before touching the public line.
+
+- **The code changes** (issue #14):
+  - `electron/main.js:126-127` — window `800x600` → `900x800`. The old size
+    actually *clipped* the 600px canvas + header; scroll gotcha below.
+  - `renderer/index.html:74` — h1 over the canvas `"pear-place v"` →
+    `"🍐/place v"`. The version is still appended dynamically in
+    `renderer/app.js:32` (`bridge.pkg().version`), so the bump makes it read
+    `🍐/place v1.0.1`.
+  - `package.json` — version `1.0.0` → `1.0.1`. **Version truth: the runtime
+    only applies a HIGHER staged version — no bump, no update.**
+  - `workers/main.js` — `delay: 0` in dev. The installed-app path (`argv(5)`)
+    only exists in packaged builds, so `app == null` ⇔ dev ⇔ instant update
+    checks; production keeps the default ~1h spread.
+
+- **Local testing before releasing** (the dev loop):
+  - `npm start` → window size good, title correct, painting works.
+  - Found and fixed a scrollbar: default `h1`/`p` margins (~21px + ~13px)
+    plus the 600px canvas overflowed the 800px viewport by a few px.
+    Fix in `renderer/index.html`: `body { overflow: hidden }` (a canvas app
+    has no legit scroll) + explicit small margins (`12px`) on `h1`/`#status`.
+  - Dev updates check: `npx electron-forge start -- --profile=ota-test`
+    (updates enabled) → worker prints `update-scheduled 0` — the dev
+    `delay: 0` change working. Caveat from `agent_docs/updates.md`: dev
+    apply targets a file named `'null'` → never click "Apply update" in dev.
+  - Local packaged check: `Add-AppxPackage .\out\PearPlace-win32-x64\PearPlace.msix`
+    = a dry-run of exactly the artifact machine B will land OTA.
+  - 🔑 **COMMIT POINT 1 — right after local tests pass, BEFORE `pear build`.**
+    One commit = one story beat: code changes + scrollbar fix + LEARNING.md
+    (never `plan.md`, never `out/`). Then push the branch and open the PR —
+    the polished diff is visible, and the issue closes only after machine B
+    proofs the OTA (repo rule: commit early, commit often; PR flow per #15–17).
+
+- **The release pipeline** (all on machine A):
+  1. `npm run lint` — the issue's files clean (prettier/lunte warnings on
+     notebooks are pre-existing, not from this change).
+  2. `npm run make` → signed `out\PearPlace-win32-x64\PearPlace.msix`
+     (171 MB), and the `preMake` hook rewrites `build/AppxManifest.xml` to
+     `Version="1.0.1.0"` from the package.json bump.
+  3. `pear build` **from OUTSIDE the repo** (deployment dir rule,
+     `agent_docs/releases.md`):
+     ```
+     pear build --package=.\pear-place\package.json --win32-x64-app .\pear-place\out\PearPlace-win32-x64\PearPlace.msix --target pear-place-1.0.1
+     ```
+  4. `pear stage --dry-run pear://hchzzy… pear-place-1.0.1` → verify the
+     diff is ONLY `/package.json` + `/by-arch/win32-x64/app/PearPlace.msix`
+     (zero leaks).
+  5. `pear stage pear://hchzzy… pear-place-1.0.1` → appends to the stage
+     line → new versioned link `pear://0.<length>.hchzzy…`.
+  6. `pear provision <stage-verlink> <provision-link> …` → moves the
+     release pointer on the public `zjzce1h` line. **Without provision the
+     release never triggers**: peers poll the provision/upgrade link in
+     `package.json#upgrade`, not the stage line.
+  7. Seed BOTH: `pear seed pear://zjzce1h…` (or sidecar) must serve the new
+     tip, and keep `npm run seed` alive (canvas seeder, one revision: same
+     host, two different payloads). "Stage works anywhere; serving does
+     not" — if `pear seed --json` says `firewalled: true` +
+     `upload.totalBytes: 0`, nobody can download the update.
+  8. After provisioning, machine A's installed app should also pull it.
+     (`pear build`/stage/provision/seed change NO repo files — nothing to
+     commit here; the tip lives on the stage keypair, not in git.)
+  9. 🔑 **COMMIT POINT 2 — if the OTA cycle needed a fix along the way**
+     (README corrections, update-UI tweaks): commit right after it works,
+     before re-staging, so the story clean-up rides the next stage.
+     Machine A self-update alone doesn't earn a commit.
+
+- **On machine B (a real peer, never reinstalled anything):**
+  - Watch the runtime cycle: `update-scheduled` → `updating` → `updated` →
+    `applyUpdate` → relaunch. **Relaunching is the reliable trigger** — a
+    fresh boot check is immediate; only the post-append check has a delay.
+  - After relaunch, the three signals: title reads `🍐/place v1.0.1`,
+    window is bigger, canvas intact (`place/<key>` lives under userData —
+    `fsx.swap`/`addPackage` never touch storage).
+  - Trigger it mid-painting, no reinstall, canvas readable after relaunch —
+    only then close issue #14.
+  - Machine B runs packaged → production ~1h appends delay applies there;
+    the dev `delay: 0` shortcut is for dev runs with updates enabled, not
+    for machine B. Relaunch app to shortcut the wait.
+  - 🔑 **COMMIT POINT 3 — the release proof.** Machine B confirmed the OTA →
+    merge the PR / push, close #14. This is the real "done": version v1.0.1
+    landed over the air on a machine that never reinstalled anything.
+
 # ❓ Questions (for the public — answered in chat, NOT here)
 
 > Things I genuinely asked myself during this process. They're probably
