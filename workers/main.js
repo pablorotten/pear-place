@@ -19,7 +19,11 @@ const updaterConfig = {
   upgrade: argv(2),
   name: argv(3),
   dir: argv(4) || dir.persistent(), // argv[4] is undefined in mobile
-  app: argv(5) // argv[5] is undefined in mobile
+  app: argv(5), // argv[5] is undefined in mobile
+  // update checks spread up to 1h after a drive append in production (the
+  // installed app path only exists in packaged builds = not dev); dev runs
+  // delay 0 so an OTA test lands immediately instead of ~30 min from now
+  delay: argv(5) ? undefined : 0
 }
 
 const pipe = new FramedStream(Bare.IPC)

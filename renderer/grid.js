@@ -11,7 +11,7 @@ const COLORS = ['#ffffff', '#000000']
 const WHITE = 0
 const BLACK = 1
 
-export function createGrid(canvas, size = SIZE, { onClick } = {}) {
+export function createGrid(canvas, size = SIZE, { onAction } = {}) {
   const ctx = canvas.getContext('2d')
   const cells = new Uint8Array(size * size)
 
@@ -39,13 +39,21 @@ export function createGrid(canvas, size = SIZE, { onClick } = {}) {
     }
   }
 
-  canvas.addEventListener('click', (event) => {
+  // mousedown, not click: the browser's `click` event only fires for the LEFT
+  // button — right clicks never reach onClick at all. mousedown fires for both.
+  canvas.addEventListener('mousedown', (event) => {
     const rect = canvas.getBoundingClientRect()
     const x = Math.floor(((event.clientX - rect.left) / rect.width) * size)
     const y = Math.floor(((event.clientY - rect.top) / rect.height) * size)
-    if (onClick) onClick(x, y)
-    else paint(x, y)
+    // left button paints black, right button paints white (context menu is
+    // guarded away below); anything else (middle) does nothing
+    const color = event.button === 0 ? BLACK : event.button === 2 ? WHITE : undefined
+    if (color === undefined) return
+    if (onAction) onAction(x, y, color)
+    else paint(x, y, color)
   })
+  // the right-click action above only works if the browser menu stays shut
+  canvas.addEventListener('contextmenu', (event) => event.preventDefault())
 
   draw()
   return { cells, paint, draw, size }

@@ -4,6 +4,9 @@ A p2p [r/place](https://www.reddit.com/r/place/) clone. Anyone can paint one sha
 
 Built with [Pear](https://pear.run) · [How canvases work](./ARCHITECTURE.md)
 
+- Stage key: pear://hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy
+- Provision key: pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+
 ## Run it: the canvas outlives its creator
 
 There is no server. Peers join a canvas by its **key** — the app ships with the
