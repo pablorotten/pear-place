@@ -107,3 +107,21 @@ pear seed <provision-link>
 
 Peers running the installed app will pick the new version up over the air (the app must advertise a higher version in `package.json`, which is why we bumped it).
 
+## Example
+
+```sh
+npm version patch --no-git-tag-version
+npm run make
+cd ..
+pear build --package=.\pear-place\package.json --win32-x64-app .\pear-place\out\PearPlace-win32-x64\PearPlace.msix --target pear-place-1.0.2
+pear stage --dry-run pear://hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy pear-place-1.0.2
+pear stage pear://hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy pear-place-1.0.2
+# >>> pear://0.7.hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy
+# this is THE moment: provisioning onto the provision link triggers the update —
+# every peer running pear-place receives it over the air
+pear provision --dry-run pear://0.7.hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto pear://0.0.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+pear provision pear://0.7.hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto pear://0.0.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+pear seed pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+
+`<length>` is the `^Latest:` number the `pear stage` command printed. Replace `1.0.2` with the version you are shipping.
