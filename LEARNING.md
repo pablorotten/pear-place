@@ -857,3 +857,73 @@ a peer be dark AND quiet.
 5. I publish a version — but what version do peers actually download, and how does the Pear network know which one is the latest?
 6. If someone copies my app, can they push an update to _my_ users without my approval? And this "secret key" — where is it supposed to live?
 7. Does pear automatically include other libraries such as bare, hyperbee, hyperswarm...
+
+## Deleting seeder storage: which folder is disposable, which one is the canvas itself
+
+Where the canvas physically lives on my machine: `bare-storage` persistent dir
+→ `C:\Users\pablo\AppData\Roaming\pear-place\seeder\self` (the canvas I minted)
+or `...\seeder\<canvas-key>` (a copy of someone else's canvas I joined). Inside:
+binary Hypercore logs (oplog/tree/bitfield), no JSON snapshot - the "current
+canvas" is *derived* from the log every time (that's why `apply()` can run on
+every peer with the same result).
+
+Serving ≠ uploading: when the seeder runs it just announces "I have this key"
+on the DHT and serves blocks **from the local disk**. Every peer keeps its own
+complete copy; the key is only the address. Delete the folder = this machine
+quietly stops being a host for it.
+
+The asymmetry that matters before hitting delete:
+
+- `seeder\<key>` (a canvas I joined) → **disposable**. Re-running the seeder
+  with the key knocks, re-downloads from any live host, and the grant comes
+  back from shared history (no ceremony). Only a problem if nobody else is
+  hosting: then there is nothing to download - I sit on an empty canvas.
+- `seeder\self` (canvas I minted) → **the original writer core lives here**,
+  keypair included. Deleting mints a different canvas with a NEW key on the
+  next bare seeder/ run: the old key never comes back from my machine. Other
+  peers holding copies can keep it alive a while longer, but the moment
+  nobody hosts it, the canvas is dead for everyone - peers join by key,
+  find no seeder, see an empty canvas forever.
+
+One-liner: joined folders are copies, `self` is the disk the canvas lives on.
+Deleting `self` is "throwing out the server's drive" - except in p2p nobody
+warns you that you *were* the server.
+
+## Offline writes: no fork survives the reunion (why "branching" is impossible here)
+
+> Scenario: p1 paints offline, disconnects, everyone else keeps painting, the
+> seeder restarts with 0 peers on the network... then p1 reconnects. What
+> happens to p1's writes that "nobody has"?
+
+The mental block to kill first: **the DHT stores no data - it's a phonebook,
+not a warehouse.** Nothing of the canvas exists "on the network" when zero
+processes are running. Data travels only between live processes; it lives on
+disks only. So a restarted seeder serves its local copy and waits - nothing
+new arrives until some holder reconnects.
+
+Why a "branch" can never exist in the final state:
+
+- There is no single shared log to fork. p1 never wrote to THE canvas log -
+  it appended to **its own Hypercore** (private, append-only), so offline
+  clicks are history, just in a log only p1 holds yet. N writers = N logs.
+- On reconnect, peers exchange each writer's core; **Autobee linearizes**
+  all logs by causality (who knew what when - encoded in the logs, no wall
+  clock, no vote). Every peer computes the SAME merged order, then the same
+  view - p1's pixels simply appear on every screen in one ordered burst.
+- Same-pixel tiebreaks are deterministic too: two concurrent writes to one
+  (x,y) both enter history, linearization orders them identically on every
+  peer - one wins, everyone agrees who. No referee; math did it.
+- Who can serve my canvas: any process replicating MY discovery key (that's
+  what blind peering is - a generic repeater that holds my cores without
+  understanding them). A Keet peer holds Keet's keys, not mine - the swarm
+  does not speak app-names, it speaks keys.
+
+Git analogy: git where merge conflicts don't exist - branches are just logs
+not yet synchronized, and synchronization IS the merge.
+
+Video beat (shot idea): paint 10 pixels offline -> reconnect -> the other
+screen blinks and they land in one ordered burst.
+
+One-liner: he painted with the lights off - and when he came back online,
+every screen in the swarm blinked and his pixels landed. Nobody decided to
+accept them. The math did.
