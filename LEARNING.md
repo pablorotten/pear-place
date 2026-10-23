@@ -859,22 +859,53 @@ a peer be dark AND quiet.
      (zero leaks).
   5. `pear stage pear://hchzzy… pear-place-1.0.1` → appends to the stage
      line → new versioned link `pear://0.<length>.hchzzy…`.
-  6. `pear provision <stage-verlink> <provision-link> …` → moves the
-     release pointer on the public `zjzce1h` line. **Without provision the
-     release never triggers**: peers poll the provision/upgrade link in
-     `package.json#upgrade`, not the stage line.
-  7. Seed BOTH: `pear seed pear://zjzce1h…` (or sidecar) must serve the new
-     tip, and keep `npm run seed` alive (canvas seeder, one revision: same
-     host, two different payloads). "Stage works anywhere; serving does
-     not" — if `pear seed --json` says `firewalled: true` +
-     `upload.totalBytes: 0`, nobody can download the update.
+  6. `pear provision <stage-verlink> <provision-link> <prev-production-verlink>`
+     → moves the release pointer on the public `zjzce1h` line. **Without
+     provision the release never triggers.** Third arg = the CURRENT
+     production verlink to sync against (`pear://0.0.<provision-key>` is the
+     bootstrap placeholder when production doesn't exist yet — the tutorial
+     names it, later releases pass the live tip, e.g. `pear://0.3.zjzce1h…`).
+  7. 🌰 **Seed the line(s) your clients ACTUALLY poll** — release-side logic
+     says "seed the provision link", but the CLIENT-SIDE trap (this release
+     bit for real, see the stranded-clients note below): seeds must cover
+     every link a live install is still polling, not just the head.
+     - `pear seed pear://zjzce1h…` — serves the provision line: future
+       installs, and every snapshot whose `upgrade` points at it (the
+       corrected one we fixed).
+     - `pear seed pear://hchzzy…` — serves the stage line: the escape hatch
+       for snapshots provisioned BEFORE the `upgrade` repoint fix (our
+       installed 0.3s poll it found the v1.0.1 tip and applied itself).
+     - keep `npm run seed` alive the whole time (canvas seeder — same host,
+       two different payloads).
+     "Stage works anywhere; serving does not" — if `pear seed --json` says
+     `firewalled: true` + `upload.totalBytes: 0`, nobody can download the
+     update. Note: `Firewalled: true` also shows in the docs' healthy sample
+     output while peers are 0 — peers connecting is the real evidence.
   8. After provisioning, machine A's installed app should also pull it.
-     (`pear build`/stage/provision/seed change NO repo files — nothing to
-     commit here; the tip lives on the stage keypair, not in git.)
+      (`pear build`/stage/provision/seed change NO repo files — nothing to
+      commit here; the tip lives on the stage keypair, not in git.)
   9. 🔑 **COMMIT POINT 2 — if the OTA cycle needed a fix along the way**
-     (README corrections, update-UI tweaks): commit right after it works,
-     before re-staging, so the story clean-up rides the next stage.
-     Machine A self-update alone doesn't earn a commit.
+      (README corrections, update-UI tweaks): commit right after it works,
+      before re-staging, so the story clean-up rides the next stage.
+      Machine A self-update alone doesn't earn a commit.
+
+- **🌰 The stranded-clients lesson (v1.0.1's actual debugging):** an
+  installed snapshot is stuck polling whatever `upgrade` link *its own*
+  package.json was provisioned with. Restaging + reprovisioning corrects
+  the FUTURE of that line but strands peers already running an old
+  snapshot — the only way an already-running peer can move is an update
+  served on the very line its stale snapshot points at. Symptom of the
+  trap: `pear seed <provision-link>` happy and healthy, both installed
+  apps at Peers 0 forever, updater silent on every relaunch. Diagnosis
+  that cracked it: `pear dump pear://0.3.zjzce1h… <tmpdir>` and read the
+  snapshot's OWN package.json — `upgrade` still the stage link
+  (`hchzzy…`, plan.md's Gotcha 2, never rolled to the deployed
+  install-tree). Fix: seed the stale line (`pear seed pear://hchzzy…`)
+  and the 0.3s pull v1.0.1 from `0.5.hchzzy…`, apply, relaunch into the
+  corrected bundle → re-anchor to `zjzce1h…`. Release flow won't miss
+  this kind of hole in the future: before calling an OTA done, dump the
+  runnings' broadest-installed snapshot, read its upgrade, seed THAT
+  line too if it differs from the provision link.
 
 - **On machine B (a real peer, never reinstalled anything):**
   - Watch the runtime cycle: `update-scheduled` → `updating` → `updated` →
