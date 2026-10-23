@@ -20,27 +20,6 @@
 - **How it works: follow one click.** Trace the workflow of a user clicking a pixel and how that click syncs to the other peer: renderer → worker → append to own log → Hyperswarm replication → same `apply()` on every peer → diff back to the UI.
 - **Updates?:** With OTA (Over The Air) new features cost no download page, a version staged onto the same `pear://` link propagates to running peers (`pear-runtime-updater`).
 
-## Running demo
-
-1. Terminal 1 — the app seeder:
-```sh
-pear seed pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
-```
-Say: "this is the seeder — it holds the app bytes on the swarm. No server; just a peer." (Runs from anywhere; let the stats table show announced.)
-2. Terminal 2 — install from the swarm:
-```sh
-pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
-```
-Say: "no download page, no store — the app is pulled from peers." (Catch the full progress bar — the money moment.)
-3. Launch: Start menu → type PearPlace → Enter. If the dev-cert SmartScreen dialog appears: "More info → Run anyway" quickly, or trim it in CapCut.
-4. Terminal 2 (new tab) — the canvas seeder, run live from the project folder:
-```sh
-npm run seed (repo ships the demo key)
-# OR
-npx bare seeder/ a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
-```
-Working dir: C:\Users\pablo\DEV\projects\pear-place — say: "and this other terminal is the canvas's host — the second seeder."
-
 ## Pros & cons, expanded (spoken)
 
 ### Pros
@@ -82,3 +61,34 @@ Working dir: C:\Users\pablo\DEV\projects\pear-place — say: "and this other ter
 ### There's a temporary desync between peers and 2 different branches of the canvas meet?
 
 "Paint while you're offline — your clicks sit in your own log. Come back online, and every peer pulls that log, runs the same merge, and your pixels land on every screen in one burst. Nobody decides to accept them; the math does. A 'branch' is really just a log the others haven't seen yet — and the moment two logs meet, causality decides the one merged order, identically on every peer. Even two strangers painting the same pixel 'at the same time' resolve to the same winner everywhere — deterministically."
+
+## How it works (spoken)
+
+We don't store the information in a DB, we store it in a log we share with all the peers.
+
+This log is called **Hypercore** and is managed by **Autobee**:
+```js
+const db = new Autobee(store, canvasKey, makeHandlers({ onPlacements: emitPlacements }))
+await db.ready()
+```
+
+1. Open the app.
+2. It joins the swarm — finds peers holding the canvas, by the hash of the key.
+3. It opens a pipe with each one (this lasts the whole session).
+4. Through the pipes, my log grows: I download the other peers' logs, and mine gets shared out.
+5. I merge all the logs I have — Autobee, deterministic, same result everywhere.
+6. From the merged timeline I derive the canvas — and I draw it. (Late joiner? I fast-forward through history and draw the latest version.)
+7. I click a pixel.
+8. My click is one append to my own log — instant, local, shared out the open pipes immediately.
+```js
+async function place(x, y, color = 1) {
+  ...
+  await db.append(placeOp(x, y, color))
+  return { x, y, color }
+}
+```
+9. Their clicks keep arriving the same way — async, maybe out of order, doesn't matter.
+10. The merge runs again on every peer — same rules, same order, same result.
+11. The diff flies to the screen — my pixel appears. On mine and theirs, same moment.
+12. No server anywhere: only logs, pipes, and the same merge running everywhere.
+
