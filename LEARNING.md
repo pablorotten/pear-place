@@ -503,6 +503,26 @@ Sources: [Release pipeline](https://docs.pears.com/pear/explanation/deployment-r
 
 Source: [Deploy your application — Step 6 Provision](https://docs.pears.com/pear/how-to/operate-an-app/manual-deployment/deployment/#6-provision)
 
+## The key is the line, not the app — corestore ≠ private
+
+> What `pear touch` ACTUALLY creates, said correctly this time.
+
+- `pear touch` mints a **keypair**. The public half IS a new (empty until
+  first stage) hypercore's identity — that's what the `pear://` key encodes.
+  The private half is stored in my local corestore.
+- I can share the public key freely — **what stays private is the private
+  (write) key**, not the corestore itself: other peers download the same
+  blocks into their own corestores. Blocks are public; the append key is not.
+- I put the provision link in `package.json#upgrade` to say: updates for this
+  app come from this line. **Anyone holding the private key of that line can
+  release updates.** The app itself is identified by name/version (what's in
+  the files); the key identifies the distribution line, and the trust
+  contract is simply "updates are valid because their signer holds the key
+  the installed app polls."
+- Corestore = the local librarian: it holds BOTH my write keys AND replicas
+  of other drives' blocks. Hypercore = the signed log itself; Corestore = a
+  folder that stores/opens/replicates many of them.
+
 ## Production: who seeds when I sleep?
 
 > "A provisioned app is 'in the network' — so is it uploaded somewhere?" No.
@@ -805,7 +825,7 @@ a peer be dark AND quiet.
   trust anchor; the `.cer` (public half) imported into `Root` is.
 - Both seeders run side-by-side happily: `pear seed` in one terminal and
   `npm run seed` in another = app distributable + canvas alive.
-
+  
 # ❓ Questions (for the public — answered in chat, NOT here)
 
 > Things I genuinely asked myself during this process. They're probably
