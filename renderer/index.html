@@ -70,6 +70,32 @@
       #grid-wrap {
         position: relative;
       }
+      /* loading screen: covers the empty canvas until the peers deliver it */
+      #loading {
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        background: #0e4f15;
+        border-radius: 4px;
+        font-size: 20px;
+        z-index: 1;
+      }
+      #loading .pear {
+        animation: spin 1.5s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #loading.hide {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -79,6 +105,11 @@
       <div id="grid-wrap">
         <canvas id="place" width="100" height="100"></canvas>
         <div id="grid-lines"></div>
+        <div id="loading">
+          <div class="pear">🍐</div>
+          <div>Connecting to peers…</div>
+          <div id="loading-detail">waiting for the 🍐/place canvas</div>
+        </div>
       </div>
       <p id="status">100×100 · click to paint · placements replicate peer-to-peer</p>
     </div>

@@ -22,8 +22,8 @@ function statusText(nPixelsLoaded) {
 }
 
 const grid = createGrid(document.getElementById('place'), SIZE, {
-  onClick: (x, y) => {
-    bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'canvas:place', x, y }))
+  onAction: (x, y, color) => {
+    bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'canvas:place', x, y, color }))
   }
 })
 
@@ -85,6 +85,8 @@ const offWorkerIpc = bridge.onWorkerIPC(workers.main, (data) => {
   }
 
   if (parsed && parsed.type === 'canvas:grid') {
+    // first grid means the peers delivered: drop the loading screen
+    document.getElementById('loading').classList.add('hide')
     canvasInfo.key = parsed.key
     canvasInfo.writable = parsed.writable
     status.innerText = statusText(parsed.placements.length)

@@ -1,7 +1,7 @@
 {
   "name": "pear-place",
   "productName": "PearPlace",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "upgrade": "pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto",
   "description": "A p2p r/place clone.",
   "license": "MIT",
