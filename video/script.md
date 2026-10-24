@@ -20,6 +20,27 @@
 - **How it works: follow one click.** Trace the workflow of a user clicking a pixel and how that click syncs to the other peer: renderer → worker → append to own log → Hyperswarm replication → same `apply()` on every peer → diff back to the UI.
 - **Updates?:** With OTA (Over The Air) new features cost no download page, a version staged onto the same `pear://` link propagates to running peers (`pear-runtime-updater`).
 
+## Running demo
+
+1. Terminal 1 — the app seeder:
+```sh
+pear seed pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+Say: "this is the seeder — it holds the app bytes on the swarm. No server; just a peer." (Runs from anywhere; let the stats table show announced.)
+2. Terminal 2 — install from the swarm:
+```sh
+pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+Say: "no download page, no store — the app is pulled from peers." (Catch the full progress bar — the money moment.)
+3. Launch: Start menu → type PearPlace → Enter. If the dev-cert SmartScreen dialog appears: "More info → Run anyway" quickly, or trim it in CapCut.
+4. Terminal 2 (new tab) — the canvas seeder, run live from the project folder:
+```sh
+npm run seed (repo ships the demo key)
+# OR
+npx bare seeder/ a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
+```
+Working dir: C:\Users\pablo\DEV\projects\pear-place — say: "and this other terminal is the canvas's host — the second seeder."
+
 ## Pros & cons, expanded (spoken)
 
 ### Pros
@@ -67,39 +88,38 @@
 We don't save the canvas — we save the history of every click. The canvas is **derived** from that history.
 
 Each peer stores its clicks in its own append-only log — a **Hypercore**. **Autobee** takes all those logs and derives one shared map from them — a **Hyperbee** — the same on every peer:
-```js
-const db = new Autobee(store, canvasKey, makeHandlers({ onPlacements: emitPlacements }))
-await db.ready()
-```
 
 1. Open the app
-2. Every peer running pear-note are like a bee, and we all belong to the same swarm. With **Hyperswarm** we find each other (via the DHT). Now we are connected
-```js
-swarm.on('connection', (conn) => { db.replicate(conn) })  // pipe with every peer, forever
-await swarm.join(db.discoveryKey).flushed()  // meet peers by hash of the key
-```
-3. Through the pipes, I catch up: I download the other peers' logs (**Hypercores**) and draw the latest canvas.
+2. Every peer running PearPlace is like a bee, and all of us holding the same canvas belong to one swarm. With **Hyperswarm** we find each other (via the DHT).
+   ```js
+   swarm.on('connection', (conn) => { db.replicate(conn) })  // pipe with every peer, forever
+   await swarm.join(db.discoveryKey).flushed()  // meet peers by hash of the key
+   ```
+3. I download the other peers' logs (called **Hypercores**) and draw the latest canvas.
 4. Now I can start drawing, I click a pixel.
-5. My click is one append to my own log. Also known as **Hypercode**
-```js
-async function place(x, y, color = 1) {
-  ...
-  await db.append(placeOp(x, y, color))
-  return { x, y, color }
-}
-```
-6. Everyone is clicking, I am not the only one. We need to share our hypercores to know where each one clicked and have the same canvas. So the bees are constantly sending their hypercores.
-7. And here is where the magic happens. Even there isnt' any central authority and all the peers receive the hypercores asnycronously in a different order
-8. Each peer **Autobee** is smart enought to merge the hypercores and linearizes them into ONE shared order, deterministically. 
-```js
-async function apply(nodes, view, host) { ... }  // Autobee calls me with THE merged order
-async function update(view, changes)    { ... }  // ...and after — I compute the diff
-```
-9. After **Autobee** job, all the swarm have exactly the same canvas.
-```js
-for await (const diff of after.createDiffStream(before)) { ... }  // just the changed cells
-onPlacements(placements)  // → worker → renderer: grid.paint(x, y, color)
-// before/after = the view checked out at the old & new heads of this apply cycle
-```
-10.  No server anywhere: only logs, pipes, and the same smart merge running everywhere.
+5. My click is one append to my own log, or **Hypercore**
 
+   ```js
+   async function place(x, y, color = 1) {
+     ...
+     await db.append(placeOp(x, y, color))
+     return { x, y, color }
+   }
+   ```
+6. This **Hypercore** is like a line of events, it register all my changes but...
+7. Everyone is clicking, I am not the only one. We need to share our hypercores to know where each one clicked and have the same canvas. So the bees are constantly sending their hypercores.
+8. And here is where the magic happens. Even though there isn't any central authority  like a serve, and all the peers receive the hypercores asynchronously in a different order
+9. Each peer's **Autobee** is smart enough to merge the hypercores and linearize them into ONE shared order, deterministically.
+
+   ```js
+   async function apply(nodes, view, host) { ... }  // Autobee calls me with THE merged order
+   async function update(view, changes)    { ... }  // ...and after — I compute the diff
+   ```
+10. After Autobee's job, the whole swarm has exactly the same canvas.
+
+   ```js
+   for await (const diff of after.createDiffStream(before)) { ... }  // just the changed cells
+   onPlacements(placements)  // → worker → renderer: grid.paint(x, y, color)
+   // before/after = the view checked out at the old & new heads of this apply cycle
+   ```
+11. No server anywhere: only logs, pipes, and the same smart merge running everywhere.
