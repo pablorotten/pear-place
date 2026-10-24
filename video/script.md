@@ -64,22 +64,23 @@
 
 ## How it works (spoken)
 
-We don't store the information in a DB, we store it in a log we share with all the peers.
+We don't save the canvas — we save the history of every click. The canvas is **derived** from that history.
 
-This log is called **Hypercore** and is managed by **Autobee**:
+Each peer stores its clicks in its own append-only log — a **Hypercore**. **Autobee** takes all those logs and derives one shared map from them — a **Hyperbee** — the same on every peer:
 ```js
 const db = new Autobee(store, canvasKey, makeHandlers({ onPlacements: emitPlacements }))
 await db.ready()
 ```
 
-1. Open the app.
-2. It joins the swarm — finds peers holding the canvas, by the hash of the key.
-3. It opens a pipe with each one (this lasts the whole session).
-4. Through the pipes, my log grows: I download the other peers' logs, and mine gets shared out.
-5. I merge all the logs I have — Autobee, deterministic, same result everywhere.
-6. From the merged timeline I derive the canvas — and I draw it. (Late joiner? I fast-forward through history and draw the latest version.)
-7. I click a pixel.
-8. My click is one append to my own log — instant, local, shared out the open pipes immediately.
+1. Open the app
+2. Every peer running pear-note are like a bee, and we all belong to the same swarm. With **Hyperswarm** we find each other (via the DHT). Now we are connected
+```js
+swarm.on('connection', (conn) => { db.replicate(conn) })  // pipe with every peer, forever
+await swarm.join(db.discoveryKey).flushed()  // meet peers by hash of the key
+```
+3. Through the pipes, I catch up: I download the other peers' logs (**Hypercores**) and draw the latest canvas.
+4. Now I can start drawing, I click a pixel.
+5. My click is one append to my own log. Also known as **Hypercode**
 ```js
 async function place(x, y, color = 1) {
   ...
@@ -87,8 +88,18 @@ async function place(x, y, color = 1) {
   return { x, y, color }
 }
 ```
-9. Their clicks keep arriving the same way — async, maybe out of order, doesn't matter.
-10. The merge runs again on every peer — same rules, same order, same result.
-11. The diff flies to the screen — my pixel appears. On mine and theirs, same moment.
-12. No server anywhere: only logs, pipes, and the same merge running everywhere.
+6. Everyone is clicking, I am not the only one. We need to share our hypercores to know where each one clicked and have the same canvas. So the bees are constantly sending their hypercores.
+7. And here is where the magic happens. Even there isnt' any central authority and all the peers receive the hypercores asnycronously in a different order
+8. Each peer **Autobee** is smart enought to merge the hypercores and linearizes them into ONE shared order, deterministically. 
+```js
+async function apply(nodes, view, host) { ... }  // Autobee calls me with THE merged order
+async function update(view, changes)    { ... }  // ...and after — I compute the diff
+```
+9. After **Autobee** job, all the swarm have exactly the same canvas.
+```js
+for await (const diff of after.createDiffStream(before)) { ... }  // just the changed cells
+onPlacements(placements)  // → worker → renderer: grid.paint(x, y, color)
+// before/after = the view checked out at the old & new heads of this apply cycle
+```
+10.  No server anywhere: only logs, pipes, and the same smart merge running everywhere.
 
