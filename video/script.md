@@ -78,22 +78,23 @@
 
 ### Clicking on the canvas
 
+- Now I can start painting
+- But where are my clicks stored? Where's the database?
+- There is no database. 
+- Every click goes into **my own** append-only log
+- Two coordinates and a color, nothing else.
+- That log is called **Hypercore**
+- Conceptually, it's like a ledger, not a database
 
 
-
+- I click a pixel
+- A click is just two coordinates and a color
+- It goes into my **Hypercore** log
+- A **Hypercore** is a line of events
 ------- BELOW THIS LINE DON'T EDIT -------
 
 
 
-1. The user clicks a pixel.
-2. The click is one append to the peer's own log — a **Hypercore**.
-   ```js
-   async function place(x, y, color = 1) {
-     ...
-     await db.append(placeOp(x, y, color))
-     return { x, y, color }
-   }
-   ```
 3. A **Hypercore** is a line of events — it registers every local change.
 4. Everyone is clicking. Peers share their hypercores constantly to know where each one clicked and hold the same canvas.
 5. There is no central authority, and all the peers receive the hypercores asynchronously, in a different order.
