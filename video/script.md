@@ -102,3 +102,9 @@
 
 ## OTA
 
+### Classic system
+
+- I ship a new version of the app — Pear Place 1.0.2
+- In the classic way
+- I just push the update to the marketplace
+- And that central server distribute it to every user"
