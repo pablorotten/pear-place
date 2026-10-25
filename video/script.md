@@ -20,7 +20,8 @@
 - **How it works: follow one click.** Trace the workflow of a user clicking a pixel and how that click syncs to the other peer: renderer → worker → append to own log → Hyperswarm replication → same `apply()` on every peer → diff back to the UI.
 - **Updates?: OTA (over the air) — updates from the same `pear://` link, no download page.**
 
-## What is r/place?
+## What is 🍐/place?
+### First, let's talk about r/place?
 
 - Do you remember r/place?
 - That was a thing in 2023
@@ -31,7 +32,11 @@
 - Find a spot
 - And paint some pixels
 
-## Running demo
+### So what I did?
+
+- So... I cloned it
+- But... it's p2p, NO server
+- And it's called Pear Place
 
 1. App seeder:
 ```sh
