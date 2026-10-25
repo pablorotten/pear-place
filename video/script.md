@@ -107,12 +107,15 @@
 - I ship a new version of the app — Pear Place 1.0.2
 - In the classic way
 - I just push the update to the marketplace
-- And that central server distribute it to every user"
+- And that central server serves it up to every user
 
 ### With pear
 
 - But with pear...
 - YES, you guessed it
 - We don't like central servers
-- Updates get distributed peer to peer, too
 
+- I seed the update
+- Peers get it instantly
+- ...and re-seed it for others
+- No server needed
