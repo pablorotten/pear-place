@@ -40,11 +40,16 @@
 
 ### No server?
 
-- To understand this, let's take a look how classic r/place works
-- The canvas, it's in a centralize server, that's the source of truth
+- Let's take a look how classic r/place works
+- The canvas, it's in a centralize server
 - Users, tell the server "hey, I clicked here"
 - And then the server updates the canvas for everyone
-- So server is the cornerstore of this
+- As you can see... the server is crucial here...
+  
+- And in Pear Place We shut it down
+- Users are the server: and we call them peers
+
+
 
 
 
@@ -63,8 +68,8 @@ Holds the app bytes on the swarm — no server, just a peer. Runs from anywhere;
    pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
    ```
 No download page, no store — the app is pulled from peers.
-2. Launch: Start menu → PearPlace. (Dev-cert SmartScreen dialog may appear once.)
-3. Canvas seeder, run live from the project folder (C:\Users\pablo\DEV\projects\pear-place):
+1. Launch: Start menu → PearPlace. (Dev-cert SmartScreen dialog may appear once.)
+2. Canvas seeder, run live from the project folder (C:\Users\pablo\DEV\projects\pear-place):
    ```sh
    npm run seed (repo ships the demo key)
    # OR
