@@ -23,11 +23,11 @@
 ## What is r/place?
 
 - Do you remember r/place?
-- That was a thing back in 2022
-- A virtual world war. Millions fought in it.
-- And suddenly... it stopped
-- The rules were dead simple
-- One shared canvas, open to everyone
+- That was a thing in 2023
+- A virtual world war where million of people joined
+- And suddently... it stopped
+- The gameplay was very simple
+- A shared canvas with all the users
 - Find a spot
 - And paint some pixels
 
