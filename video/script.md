@@ -108,3 +108,11 @@
 - In the classic way
 - I just push the update to the marketplace
 - And that central server distribute it to every user"
+
+### With pear
+
+- But with pear...
+- YES, you guessed it
+- We don't like central servers
+- Updates get distributed peer to peer, too
+
