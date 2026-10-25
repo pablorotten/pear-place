@@ -38,23 +38,38 @@
 - But... it's p2p, NO server
 - And it's called Pear Place
 
+### No server?
+
+- To understand this, let's take a look how classic r/place works
+- The canvas, it's in a centralize server, that's the source of truth
+- Users, tell the server "hey, I clicked here"
+- And then the server updates the canvas for everyone
+- So server is the cornerstore of this
+
+
+
+------- BELOW THIS LINE DON'T EDIT -------
+
+
+
+
 1. App seeder:
 ```sh
 pear seed pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
 ```
 Holds the app bytes on the swarm — no server, just a peer. Runs from anywhere; the stats table shows announced.
-2. Install from the swarm:
-```sh
-pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
-```
+1. Install from the swarm:
+   ```sh
+   pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+   ```
 No download page, no store — the app is pulled from peers.
-3. Launch: Start menu → PearPlace. (Dev-cert SmartScreen dialog may appear once.)
-4. Canvas seeder, run live from the project folder (C:\Users\pablo\DEV\projects\pear-place):
-```sh
-npm run seed (repo ships the demo key)
-# OR
-npx bare seeder/ a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
-```
+2. Launch: Start menu → PearPlace. (Dev-cert SmartScreen dialog may appear once.)
+3. Canvas seeder, run live from the project folder (C:\Users\pablo\DEV\projects\pear-place):
+   ```sh
+   npm run seed (repo ships the demo key)
+   # OR
+   npx bare seeder/ a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
+   ```
 
 ## Pros & cons, expanded
 
