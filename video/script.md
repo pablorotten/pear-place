@@ -86,30 +86,20 @@
 - That log is called **Hypercore**
 - Conceptually, it's like a ledger, not a database
 
-
 - I click a pixel
 - A click is just two coordinates and a color
 - It goes into my **Hypercore** log
 - A **Hypercore** is a line of events
+
+- The whole swarm is clicking
+- Each peer appends clicks to its own **Hypercore**
+- Here's the magic:
+- Each peer's **Autobee** merges the different Hypercores into a single order
+- Every peer does the merge locally
+- All of them end up with the same result
+- and therefore the same canvas
+- Peers keep sharing and merging logs, constantly.
 ------- BELOW THIS LINE DON'T EDIT -------
-
-
-
-3. A **Hypercore** is a line of events — it registers every local change.
-4. Everyone is clicking. Peers share their hypercores constantly to know where each one clicked and hold the same canvas.
-5. There is no central authority, and all the peers receive the hypercores asynchronously, in a different order.
-6. Each peer's **Autobee** merges the hypercores and linearizes them into ONE shared order, deterministically.
-   ```js
-   async function apply(nodes, view, host) { ... }  // Autobee calls me with THE merged order
-   async function update(view, changes)    { ... }  // ...and after — the diff
-   ```
-7.  After Autobee's job, the whole swarm has exactly the same canvas.
-   ```js
-   for await (const diff of after.createDiffStream(before)) { ... }  // just the changed cells
-   onPlacements(placements)  // → worker → renderer: grid.paint(x, y, color)
-   // before/after = the view checked out at the old & new heads of this apply cycle
-   ```
-8.  No server anywhere: only logs, pipes, and the same smart merge running everywhere.
 
 ## How updates spread
 
