@@ -825,7 +825,46 @@ a peer be dark AND quiet.
   trust anchor; the `.cer` (public half) imported into `Root` is.
 - Both seeders run side-by-side happily: `pear seed` in one terminal and
   `npm run seed` in another = app distributable + canvas alive.
-  
+
+## Follow one click: how a paint syncs across peers (the whole trace)
+
+> The best 3-min explanation of the app is the life of ONE click. Five code
+> stops, two libraries, zero servers. This is the trace to script the video
+> from (and the answer to "where's the sync logic?").
+
+- **Stop 1 — the click is a wish, not a paint** (renderer/app.js:25):
+  `onClick → bridge.writeWorkerIPC({ type: 'canvas:place', x, y })`. The window
+  owns no canvas; it just posts a message to the Pear worker.
+- **Stop 2 — the worker routes it** (workers/main.js:129):
+  `if (msg.type === 'canvas:place') await canvas.place(msg.x, msg.y)`. One line
+  — and proof the backend is shared: no Electron APIs, pure core string.
+- **Stop 3 — a paint is an append** (backend/canvas.js:119):
+  `await db.append(placeOp(x, y, color))`. And the library story is one line
+  earlier (canvas.js:42): `db = new Autobee(store, canvasKey, makeHandlers(...))`
+  — Autobee owns the writer core (made by Corestore) AND the Hyperbee view.
+  The snap: `place()` returns instantly with `{x,y,color}` — it has NOT painted
+  anything yet; it wrote a log entry.
+- **Stop 4 — the logs travel, never the canvas** (backend/canvas.js:56-64):
+  two Hyperswarm lines: `swarm.join(db.discoveryKey)` (meet by hash of the key —
+  the key itself is never broadcast) and `db.replicate(conn)` on connection
+  (swap log entries, made by Autobee, not Corestore — the wakeup stream is why).
+- **Stop 5 — same program, other side** (backend/apply.js:47):
+  `apply(nodes, view, host)` replays the ONE linearized order into the view;
+  every peer derives the same pixels independently. Then the diff leaves:
+  `makeHandlers().update(view, changes)` (apply.js:92) checks out the view
+  before/after heads, `createDiffStream` → `onPlacements` → workers/main.js:51
+  → `{type:'canvas:placed', placements}` → renderer/app.js:94 `grid.paint(...)`.
+- **The loop closes**: the pixel I painted comes back through 5 stops and 2
+  peers in ~1s — `canvas:placed` fires for my OWN clicks too (the local append
+  goes through the same apply), so there is exactly one code path for
+  local-and-remote paints. That single-path property is the video's money shot.
+- **Concurrency question to be ready for**: two peers click the same cell
+  "simultaneously" — there is no simultaneity after Autobee: both ops enter
+  the shared order, `tryPut` overwrites (place is overwrite-safe like
+  r/place), and the later op in the linearized order wins — identically on
+  every peer. Brief flicker while ops are mid-flight; no permanent
+  disagreement, because disagreement would require two different orders.
+
 # ❓ Questions (for the public — answered in chat, NOT here)
 
 > Things I genuinely asked myself during this process. They're probably
@@ -838,3 +877,108 @@ a peer be dark AND quiet.
 5. I publish a version — but what version do peers actually download, and how does the Pear network know which one is the latest?
 6. If someone copies my app, can they push an update to _my_ users without my approval? And this "secret key" — where is it supposed to live?
 7. Does pear automatically include other libraries such as bare, hyperbee, hyperswarm...
+
+## OTA
+
+An update — even a heavy one — is just data appended to the app's own log:
+
+1. The app is served from a **Hyperdrive** — a peer-to-peer filesystem, like git: the current version is a snapshot of the drive, and a release is just committing new files on top. No "new installer" gets packaged — new data is appended to the app's history.
+2. Every release flows through **the same two links**, minted once with `pear touch`:
+   - **Stage link** — private, the writer's own, where builds are pushed.
+   - **Provision link** — public, lives in the app (`package.json#upgrade`), never changes. Fresh installs and updates all come from it.
+
+   ```json
+   { "productName": "PearPlace", "version": "1.0.2", "upgrade": "pear://zjzce1h..." }
+   ```
+3. The release ceremony is always the same:
+   ```sh
+   npm version patch && npm run make && pear build ...  # build the new payload
+   pear stage pear://<stage-link> <dir>     # returns the versioned link for this release
+   pear provision <verlink> <provision-link> ...  # publishing — the ship moment
+   pear seed <provision-link>               # stay online so peers can download it
+   ```
+4. `pear provision` publishes the new version on the provision link. Every running PearPlace polls that link with the embedded **`pear-runtime-updater`** (inside the app from the very first install). It sees the drive grew and announces the update in the UI — "Update ready".
+5. The peer downloads the new version **from the swarm, from other peers** — same as the first install. It mirrors the app byte-for-byte, stages it locally, shows progress.
+6. `applyUpdate()` — the app swaps its own drive and restarts. Packaged builds do this automatically after the updater's randomized delay; dev mode runs with `updates: false`.
+7. No server here either: the update is seeded the same as the canvas — a release is a peer with the new bytes, the swarm distributes it, the updater only points at a key.
+
+### Who serves the update — the honest model
+
+- **Writing** stays with the developer: only the provision key can append a new version. Identity of authorship is a feature — strangers can't publish a v1.0.2 with a keylogger in the app.
+- **Distribution** is p2p: connections are bi-directional, so any peer holding the blocks serves them to peers connected at that moment.
+- **Availability** is never automatic: replication requires a live source, so every release needs at least one willing seeder. Three roles split the work:
+  - **Founder seeder** — the guaranteed, always-on source the developer runs (`pear seed <provision-link>`). This is the one remaining dev duty.
+  - **Opportunistic relays** — every peer that already has the release passes blocks to connected peers while online, then stops. A bandwidth amplifier, not an availability guarantee.
+  - **Blind peers** — a third-party service that keeps the keys (`pear info`) available without ever decrypting them; no personal machine has to stay on.
+- Without any seeder the update exists in principle but nobody can download it — keys persist forever, bytes don't.
+- Server-world comparison: every peer whose app needs updates subtracts from the vendor's bandwidth forever. In Pear, every peer that *has* the release offsets it.
+
+## Deleting seeder storage: which folder is disposable, which one is the canvas itself
+
+Where the canvas physically lives on my machine: `bare-storage` persistent dir
+→ `C:\Users\pablo\AppData\Roaming\pear-place\seeder\self` (the canvas I minted)
+or `...\seeder\<canvas-key>` (a copy of someone else's canvas I joined). Inside:
+binary Hypercore logs (oplog/tree/bitfield), no JSON snapshot - the "current
+canvas" is *derived* from the log every time (that's why `apply()` can run on
+every peer with the same result).
+
+Serving ≠ uploading: when the seeder runs it just announces "I have this key"
+on the DHT and serves blocks **from the local disk**. Every peer keeps its own
+complete copy; the key is only the address. Delete the folder = this machine
+quietly stops being a host for it.
+
+The asymmetry that matters before hitting delete:
+
+- `seeder\<key>` (a canvas I joined) → **disposable**. Re-running the seeder
+  with the key knocks, re-downloads from any live host, and the grant comes
+  back from shared history (no ceremony). Only a problem if nobody else is
+  hosting: then there is nothing to download - I sit on an empty canvas.
+- `seeder\self` (canvas I minted) → **the original writer core lives here**,
+  keypair included. Deleting mints a different canvas with a NEW key on the
+  next bare seeder/ run: the old key never comes back from my machine. Other
+  peers holding copies can keep it alive a while longer, but the moment
+  nobody hosts it, the canvas is dead for everyone - peers join by key,
+  find no seeder, see an empty canvas forever.
+
+One-liner: joined folders are copies, `self` is the disk the canvas lives on.
+Deleting `self` is "throwing out the server's drive" - except in p2p nobody
+warns you that you *were* the server.
+
+## Offline writes: no fork survives the reunion (why "branching" is impossible here)
+
+> Scenario: p1 paints offline, disconnects, everyone else keeps painting, the
+> seeder restarts with 0 peers on the network... then p1 reconnects. What
+> happens to p1's writes that "nobody has"?
+
+The mental block to kill first: **the DHT stores no data - it's a phonebook,
+not a warehouse.** Nothing of the canvas exists "on the network" when zero
+processes are running. Data travels only between live processes; it lives on
+disks only. So a restarted seeder serves its local copy and waits - nothing
+new arrives until some holder reconnects.
+
+Why a "branch" can never exist in the final state:
+
+- There is no single shared log to fork. p1 never wrote to THE canvas log -
+  it appended to **its own Hypercore** (private, append-only), so offline
+  clicks are history, just in a log only p1 holds yet. N writers = N logs.
+- On reconnect, peers exchange each writer's core; **Autobee linearizes**
+  all logs by causality (who knew what when - encoded in the logs, no wall
+  clock, no vote). Every peer computes the SAME merged order, then the same
+  view - p1's pixels simply appear on every screen in one ordered burst.
+- Same-pixel tiebreaks are deterministic too: two concurrent writes to one
+  (x,y) both enter history, linearization orders them identically on every
+  peer - one wins, everyone agrees who. No referee; math did it.
+- Who can serve my canvas: any process replicating MY discovery key (that's
+  what blind peering is - a generic repeater that holds my cores without
+  understanding them). A Keet peer holds Keet's keys, not mine - the swarm
+  does not speak app-names, it speaks keys.
+
+Git analogy: git where merge conflicts don't exist - branches are just logs
+not yet synchronized, and synchronization IS the merge.
+
+Video beat (shot idea): paint 10 pixels offline -> reconnect -> the other
+screen blinks and they land in one ordered burst.
+
+One-liner: he painted with the lights off - and when he came back online,
+every screen in the swarm blinked and his pixels landed. Nobody decided to
+accept them. The math did.
