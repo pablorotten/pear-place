@@ -6,46 +6,65 @@
 
 A p2p [r/place](https://www.reddit.com/r/place/) clone. Anyone can paint one shared pixel canvas, and there is no server: the canvas _is_ the network.
 
-Built with [Pear](https://pear.run) · [How canvases work](./ARCHITECTURE.md)
+Built with [Pear](https://pear.run)
 
-- Stage key: pear://hchzzy6ggkgcx3x7owogtwg5pyohqyc74eoixd4i6ztzog3x8jmy
-- Provision key: pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+▶️ **Watch the walkthrough:** https://youtu.be/qn4ahF26IkE
 
-## Run it: the canvas outlives its creator
+> [!WARNING]
+> 💻 **Windows only (for now).**
 
-There is no server. Peers join a canvas by its **key** — the app ships with the
-demo canvas key (`shared/canvas-key.js`) — and the canvas is hosted by whoever
+## 🔗 The links
+
+**To install the app:**
+```sh
+pear install pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+
+**To host/share the app (serve it to others when you're offline):**
+```sh
+pear seed pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+```
+
+**To host the demo canvas (keep it paintable when you're offline):**
+```sh
+npx bare seeder/ a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
+```
+
+## Run it: the canvas keeps running after its creator stops
+
+There is no server. Peers join a canvas by its **key**. The app ships with the
+demo canvas key (`shared/canvas-key.js`), and the canvas is hosted by whoever
 is running: the desktop app when it is open, the **seeder** when it is not.
 
 ```sh
-# terminal 1: the seeder — a headless host in Bare, no window
+# terminal 1: the seeder, a headless host in Bare, no window
 npm run seed
 
-# terminal 2: peer one — a desktop window
+# terminal 2: peer one, a desktop window
 npm start
 
-# terminal 3: peer two — an INDEPENDENT instance (own storage + writer identity)
+# terminal 3: peer two, an INDEPENDENT instance (own storage + writer identity)
 npm run start:two
 ```
 
-Paint in peer one: within a couple of seconds the pixel appears in peer two —
+Paint in peer one: within a couple of seconds the pixel appears in peer two,
 and the other way around. Both windows show the same canvas key in the status
 line; each repaint is the Autobee `update(view, changes)` diff reaching the
 renderer, never a rescan of the grid.
 
 Now close both windows. The seeder keeps the canvas up: a brand-new peer can
-still join by the key, receive the full canvas, and paint — the seeder holds
+still join by the key, receive the full canvas, and paint. The seeder holds
 **grant power** and auto-grants newcomers (the knock channel). On a machine
 that never minted this canvas, host it the same way (invoke the bare CLI
-directly so the key reaches the seeder — npm eats arguments after `--` on some
+directly so the key reaches the seeder; npm eats arguments after `--` on some
 shells):
 
 ```sh
 npx bare seeder/ <canvas-key from shared/canvas-key.js>
 ```
 
-The first join is read-only — the seeder knocks and waits for a writable peer
-to grant it. Once granted, that grant lives in the shared history: kill the
+The first join is read-only: the seeder knocks and waits for a writable peer
+to grant it. Once granted, that grant is stored in the shared history: stop the
 process, start it again, and it comes back writable with zero ceremony.
 
 ### Run your own canvas
@@ -61,7 +80,10 @@ and any writable peer auto-grants newcomers (the knock channel). See
 
 ## Install the app from the p2p network (any Windows machine)
 
-The app is distributed as a `pear://` link — no store, no download page. The
+> [!IMPORTANT]
+> Windows only, see the note at the top. macOS/Linux builds are a follow-up.
+
+The app is distributed as a `pear://` link: no store, no download page. The
 package (an `.msix` signed with a self-signed dev cert) sits on the swarm; a
 seeder must be online for the bytes to exist.
 
@@ -70,13 +92,13 @@ seeder must be online for the bytes to exist.
 pear seed pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
 
 # 1. on the machine installing: install Pear from https://install.pears.com
-# 2. trust the dev signing cert (public half only — shipped in this repo)
+# 2. trust the dev signing cert (public half only, shipped in this repo)
 Invoke-WebRequest -Uri https://raw.githubusercontent.com/pablorotten/pear-place/main/PearPlace-dev.cer -OutFile PearPlace-dev.cer
 Import-Certificate -FilePath .\PearPlace-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
-#    (one-time, needs an admin shell — self-signed root, no CA vouching)
+#    (one-time, needs an admin shell; self-signed root, no CA vouching)
 
 # 3. install the app from the swarm
-pear install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+pear install pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
 ```
 
 Then open **PearPlace** from the Start menu. Updates propagate **over the
@@ -85,18 +107,28 @@ apps pick it up without reinstalling.
 
 > Why the cert step: Windows verifies the msix signature against anchors it
 > trusts. Our dev cert is self-signed, so each machine imports its public half
-> once — until the app ships with a code-signing cert from a public CA.
+> once, until the app ships with a code-signing cert from a public CA.
 
-### First paint needs the canvas alive (p2p ≠ storage in the cloud)
+### First paint needs someone hosting the canvas (p2p ≠ storage in the cloud)
 
 Two different seeders, both needed, both just peers:
 
 | Seeder                    | Serves                        | Run with                          |
 | ------------------------- | ----------------------------- | --------------------------------- |
-| the **binary** seeder     | the app installer (`.msix`)   | `pear seed pear://zjzce1h…`       |
+| the **binary** seeder     | the app installer (`.msix`)   | `pear seed` with the install link (see 🔗 The links) |
 | the **canvas** seeder     | placements + write grants     | `npm run seed`                    |
 
 If the window opens and clicks say `rejected`, the canvas seeder isn't
-running — start `npm run seed` and the knock gets an answer.
+running, start `npm run seed` and the knock gets an answer.
+
+**Hosting the shipped demo canvas from any machine:**
+
+```sh
+npx bare seeder/ a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
+```
+
+Run that and the demo canvas keeps working without you: newcomers can still
+join, receive the full paintings history, and paint, even if your machine
+running the desktop app is asleep.
 
 Project board: https://github.com/users/pablorotten/projects/7/views/1
