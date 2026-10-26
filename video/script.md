@@ -119,3 +119,24 @@
 - Peers get it instantly
 - ...and re-seed it for others
 - No server needed
+
+### Let's do it!
+
+- I just shipped an update for Pear Place!
+- Here's how
+
+- Here I'm the dev
+- First, I seed the update
+- This Pear link is how peers find it on the network
+- Just started, so No peers so far
+
+- Two peers connect
+- They're still on pear place 1.0.1
+- Look! My seeder spotted the first peer — I'm sending the update
+- Here comes a second one!
+- See the peers' screens? The app is updating
+- Fast forward...
+- And an Apply Update button pops up
+- Click it and...
+- Both peers are on the fresh 1.0.2
+  
