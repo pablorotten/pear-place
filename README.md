@@ -6,7 +6,7 @@
 
 A p2p [r/place](https://www.reddit.com/r/place/) clone. Anyone can paint one shared pixel canvas, and there is no server: the canvas _is_ the network.
 
-Built with [Pear](https://pear.run)
+Built with [Pear](https://pears.com)
 
 ▶️ **Watch the walkthrough:** https://youtu.be/qn4ahF26IkE
 
