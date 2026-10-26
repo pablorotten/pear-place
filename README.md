@@ -1,5 +1,9 @@
 # 🍐/place (pear-place)
 
+<p align="center">
+  <img src="assets/logo.png" alt="PearPlace logo" width="256">
+</p>
+
 A p2p [r/place](https://www.reddit.com/r/place/) clone. Anyone can paint one shared pixel canvas, and there is no server: the canvas _is_ the network.
 
 Built with [Pear](https://pear.run) · [How canvases work](./ARCHITECTURE.md)
