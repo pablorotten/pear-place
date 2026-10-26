@@ -96,18 +96,3 @@ If the window opens and clicks say `rejected`, the canvas seeder isn't
 running — start `npm run seed` and the knock gets an answer.
 
 Project board: https://github.com/users/pablorotten/projects/7/views/1
-
-## Temp: Install pear in w10 machine
-
-```sh
-# 1. get the pear CLI: download pear.exe from https://install.pears.com in the browser
-#    (the PowerShell bootstrap script fails on old TLS stacks; the .exe download doesn't)
-.\pear.exe -v        # -> 3.6.0
-
-# 2. download the cert from the repo + trust it (run as ADMIN)
-Invoke-WebRequest "https://raw.githubusercontent.com/pablorotten/pear-place/main/PearPlace-dev.cer" -OutFile PearPlace-dev.cer
-Import-Certificate -FilePath .\PearPlace-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
-
-# 3. install the app (needs a `pear seed` running on the host machine)
-.\pear.exe install pear://0.3.zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
-```
