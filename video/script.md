@@ -104,7 +104,7 @@
 
 ### Classic system
 
-- I ship a new version of the app — Pear Place 1.0.2
+- I ship a new version of the app: Pear Place 1.0.2
 - In the classic way
 - I just push the update to the marketplace
 - And that central server serves it up to every user
@@ -132,11 +132,18 @@
 
 - Two peers connect
 - They're still on pear place 1.0.1
-- Look! My seeder spotted the first peer — I'm sending the update
+- Look! My seeder spotted the first peer, I'm sending the update
 - Here comes a second one!
 - See the peers' screens? The app is updating
 - Fast forward...
 - And an Apply Update button pops up
 - Click it and...
 - Both peers are on the fresh 1.0.2
+- And that's it: the whole update went peer to peer. Zero servers, no downloads page.
   
+## Outro
+
+- Hope you learned how Pear Place does it Pear and OTA
+- The full project is in the link below. 
+- Follow me for more p2p apps
+- See you in the next one!
