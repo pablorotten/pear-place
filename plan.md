@@ -1,5 +1,73 @@
-# 🧠 THE PLAN
+# 🧵 THE LAUNCH THREAD (issue #29) — SHIPPED Oct 26, 2026
+Thread: https://x.com/PabloDevRel/status/2114581071878820287
+(as-published copy, the record of what went out; 6 posts + 0:32 video short
+attached to post 1)
 
+**Post 1 (hook, + the 0:32 short as the media):**
+Remember r/place? It shut down. Since then, dozens of clones... but not a
+single P2P one. Until now 🧵
+
+**Post 2 (the problem):**
+Every r/place clone has the same problem, maintain a server. Someone pays for
+it, and when that someone calls it... GAME OVER (ask r/place)
+
+**Post 3 (the idea):**
+So... what if the canvas had NO server? What if the canvas is the network
+itself?
+
+That's pear place (🍐/place): one shared pixel canvas where every painter
+is the host
+
+**Post 4 (how it works):**
+How? Hyperswarm finds the peers, Hypercore logs the status, Hyperbee merges
+and strangers enter with their pear://🔑key
+
+**Post 5 (try it):**
+Wanna try? No store, no download page. The app installs from a link:
+`pear install pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto`
+And new versions propagate over the air, no reinstall
+
+**Post 6 (links):**
+Full walkthrough video: https://youtu.be/qn4ahF26IkE
+Code: https://github.com/pablorotten/pear-place
+No server, remember, so installs need someone seeding. And I'm seeding 🍐😊
+
+---
+
+# 🎬 YOUTUBE DESCRIPTION (final)
+
+```
+Remember r/place? Now it's shutdown and there're dozens of clones
+but... not a P2P one!
+
+There were millions of people painting ONE canvas together, imagine the
+cost of that server!!! And when the oweners decides to shut it down...
+GAME OVER
+
+So I built pear place (🍐/place): a collaborative pixel canvas where
+THERE IS NO SERVER.
+
+Install the app yourself (no store, no download page):
+pear install pear://zjzce1h7ukxcu7oqmojosby9qb3mxjfsgb97yx493jjjfxyqrpto
+
+Built on Pear and the Holepunch stack (Hypercore, Hyperbee, Hyperswarm).
+
+Everything used here:
+• Code + README (the full tutorial): https://github.com/pablorotten/pear-place
+• My site & other stories: https://pablodevrel.com
+
+Get Pear: https://docs.pears.com
+LinkedIn: https://www.linkedin.com/in/pablo-antonio-rodriguez-rubio/
+
+#Pear #Holepunch #P2P #Hypercore #JavaScript #DevRel
+```
+
+(The paste had the old pinned link `pear://0.3.zjz…`; swapped to the stable
+bare provision key as agreed, always "latest", never goes stale.)
+
+---
+
+# 🧠 THE PLAN
 ## 🛣️ The road
 
 ```
