@@ -27,6 +27,7 @@ const REKNOCK_EVERY = 5000 // joiner re-knocks until some writable peer grants
 const APPLY_TICK = 1000 // belt-and-braces linearize pass, like the spike
 
 module.exports = async function createCanvas(dir, canvasKey = null) {
+  // ANCHOR 🖼️ Create the Corestore
   const store = new Corestore(dir)
   await store.ready()
   try {
@@ -39,6 +40,7 @@ module.exports = async function createCanvas(dir, canvasKey = null) {
   const placementsListeners = new Set()
   const writableListeners = new Set()
 
+  // ANCHOR 🖼️ Create the Hypercore
   const db = new Autobee(store, canvasKey, makeHandlers({ onPlacements: emitPlacements }))
   await db.ready()
 
@@ -53,18 +55,22 @@ module.exports = async function createCanvas(dir, canvasKey = null) {
 
   // replication: db.replicate (NOT store.replicate — that one skips the
   // wakeup stream that makes new remote ops trigger an apply cycle)
+  // ANCHOR 🖼️ Hyperswarm for the canvas with topic a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
   const swarm = new Hyperswarm()
   swarm.on('connection', (conn) => {
     conn.on('error', () => {}) // peers hang up mid-replication all the time
+    // ANCHOR 🫟 1 with Hyperswarm receives peer click hypercore
     const stream = db.replicate(conn)
     stream.on('error', () => {})
     if (stream !== conn) conn.on('close', () => stream.destroy())
   })
   // the topic is a hash of the canvas key: peers meet by hash, then verify
+  // ANCHOR 🖼️ Announce the canvas in the DHT
   await swarm.join(db.discoveryKey).flushed()
 
   // the knock channel: strangers hand over their writer id, writable peers
   // auto-grant them by appending an addWriter op into shared history
+  // ANCHOR 🖼️ Hyperwarm to anounce the canvas topic a4xu9rqb1h9ybnpabs1pbengd8aonu6ks95mpyiattskdgt5d7zy
   const knock = new Hyperswarm()
   const granted = new Set()
   knock.on('connection', (conn) => {
@@ -106,6 +112,7 @@ module.exports = async function createCanvas(dir, canvasKey = null) {
   db.on('writable', () => emitWritable(true))
 
   // keep linearizing arrivals the wakeup stream might have missed (spike lesson)
+  // ANCHOR 🫟 2 Autobee runs a cycle and apply updates
   const tick = setInterval(() => db.update().catch(() => {}), APPLY_TICK)
 
   // --- the canvas API ----------------------------------------------------------
@@ -116,6 +123,7 @@ module.exports = async function createCanvas(dir, canvasKey = null) {
     if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) return null
     if (color !== 0 && color !== 1) return null
     if (!db.writable) return null
+    // ANCHOR 🎨 3. Write in the Hypercore
     await db.append(placeOp(x, y, color))
     return { x, y, color }
   }

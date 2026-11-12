@@ -44,6 +44,7 @@ goodbye(async () => {
 async function main() {
   console.log('[seeder] storage:', storage)
 
+  // ANCHOR 🖼️ create the canvas with the command `npx bare seeder` 
   const canvas = await createCanvas(storage, canvasKey)
   current = canvas
 

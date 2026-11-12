@@ -102,6 +102,7 @@ function getWorker(specifier) {
   function onBeforeQuit() {
     pipe.destroy()
   }
+  // ANCHOR 🎨 1.3 forward the coordenates and color to Bare
   ipcMain.handle('pear:worker:writeIPC:' + specifier, (evt, data) => {
     return pipe.write(data)
   })

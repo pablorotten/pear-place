@@ -41,6 +41,7 @@ export function createGrid(canvas, size = SIZE, { onAction } = {}) {
 
   // mousedown, not click: the browser's `click` event only fires for the LEFT
   // button — right clicks never reach onClick at all. mousedown fires for both.
+  // ANCHOR 🎨 1.1 Get the coordinates where click
   canvas.addEventListener('mousedown', (event) => {
     const rect = canvas.getBoundingClientRect()
     const x = Math.floor(((event.clientX - rect.left) / rect.width) * size)

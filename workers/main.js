@@ -53,6 +53,7 @@ createCanvas(
     // every apply cycle reports ONLY the cells that changed (the diff), local
     // paints and remote paints alike — the renderer repaints exactly those
     c.onPlacements((placements) => {
+      // ANCHOR 🎨 5 Autobee triggers the update in Bare
       if (canvasStreamed) pipe.write(JSON.stringify({ type: 'canvas:placed', placements }))
     })
     c.onWritable((writable) => {
@@ -130,6 +131,7 @@ pipe.on('data', async (data) => {
       sendCanvasGrid()
       return
     }
+    // ANCHOR 🎨 2 Bare receives the pixel
     if (msg.type === 'canvas:place' && canvas) {
       const placed = await canvas.place(msg.x, msg.y, msg.color)
       if (placed === null) console.log('canvas:place rejected', msg.x, msg.y)

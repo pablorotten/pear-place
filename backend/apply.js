@@ -20,6 +20,7 @@ const { SIZE } = require('../shared/canvas-size')
 
 // the op appended to a peer's writer core: { p: [x, y, color] } — overwrite
 // safe like r/place: painting white over a cell overwrites its entry
+// ANCHOR 🎨 4.1 Autobee run cycle and merges
 function placeOp(x, y, color) {
   return b4a.from(JSON.stringify({ p: [x, y, color] }))
 }
@@ -38,6 +39,7 @@ function parseColor(buf) {
   return JSON.parse(b4a.toString(buf))
 }
 
+// ANCHOR 🎨 4.2 Autobee update view with result
 async function apply(nodes, view, host) {
   for (const node of nodes) {
     try {

@@ -21,6 +21,7 @@ function statusText(nPixelsLoaded) {
   return SIZE + 'x' + SIZE + ' · canvas ' + key + pixels + access + ' · no server — peers replicate'
 }
 
+// ANCHOR 🎨 1.2 forward the coordenates and color
 const grid = createGrid(document.getElementById('place'), SIZE, {
   onAction: (x, y, color) => {
     bridge.writeWorkerIPC(workers.main, JSON.stringify({ type: 'canvas:place', x, y, color }))
